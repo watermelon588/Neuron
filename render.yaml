@@ -1,0 +1,48 @@
+# Render blueprint for the Neuron backend.
+# Import via Render → New → Blueprint, pointed at this repo. Everything below
+# is provisioned automatically except the secrets marked `sync: false`, which
+# you fill in from the dashboard.
+#
+# PLAN / MEMORY: the ML models (Whisper + CLIP + BLIP + MiniLM) load lazily
+# into process memory and need ~2 GB peak. The `standard` plan (2 GB) is the
+# realistic floor — the free/starter 512 MB tiers OOM-kill on first model load.
+# Keep ENABLE_LOCAL_LLM off on 2 GB and use Groq for generation; only turn the
+# local LLM on if you size up to `pro` (4 GB).
+services:
+  - type: web
+    name: neuron-api
+    runtime: docker
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    plan: standard
+    region: oregon
+    healthCheckPath: /health
+    # Persistent disk: uploaded documents, their FAISS indexes, and the HF
+    # model cache all live here. Without it, every restart loses user uploads
+    # and re-downloads ~2 GB of weights.
+    disk:
+      name: neuron-storage
+      mountPath: /app/storage
+      sizeGB: 10
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: SECRET_KEY
+        generateValue: true          # Render generates a strong random value
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: COOKIE_SAMESITE
+        value: none                  # required: frontend is on a different domain
+      - key: TRUSTED_PROXY_HOPS
+        value: "1"                   # Render terminates TLS in front of the app
+      - key: ENABLE_LOCAL_LLM
+        value: "false"               # use Groq instead; safe for a 2 GB plan
+      # ── Secrets: set these in the Render dashboard ──────────────
+      - key: MONGODB_URI
+        sync: false                  # your MongoDB Atlas SRV string
+      - key: SERPER_API_KEY
+        sync: false                  # https://serper.dev  (rotate the leaked one)
+      - key: GROQ_API_KEY
+        sync: false                  # https://console.groq.com/keys
+      - key: CORS_ORIGINS
+        sync: false                  # e.g. https://your-app.vercel.app
