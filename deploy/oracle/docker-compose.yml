@@ -1,0 +1,23 @@
+# Runs the Neuron backend on an Oracle Always-Free VM.
+#
+# The container binds to 127.0.0.1 only — it is NOT exposed on the VM's public
+# IP. Tailscale Funnel (see README) is what publishes it to the internet over
+# HTTPS, which sidesteps Oracle's firewall entirely and gives cross-site
+# cookies the valid TLS cert they require.
+services:
+  api:
+    build:
+      context: ../../backend        # builds backend/Dockerfile natively on the VM (arm64)
+    image: neuron-api
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "127.0.0.1:8000:8000"       # localhost only; Funnel exposes it publicly
+    volumes:
+      # Persists uploaded documents, FAISS indexes and the HuggingFace model
+      # cache (HF_HOME is /app/storage/hf-cache) across restarts, so the ~2 GB
+      # of weights download only once.
+      - neuron-storage:/app/storage
+
+volumes:
+  neuron-storage:

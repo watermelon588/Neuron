@@ -1,0 +1,2 @@
+# Never commit the real environment file — it holds live secrets.
+.env
