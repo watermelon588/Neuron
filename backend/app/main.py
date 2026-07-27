@@ -146,20 +146,64 @@ def create_app() -> FastAPI:
     register_exception_handlers(app)
     app.include_router(v1_router, prefix=settings.api_v1_prefix)
 
-    @app.get("/", include_in_schema=False)
-    def root() -> dict:
-        return {
-            "name": settings.app_name,
-            "version": __version__,
-            "api": settings.api_v1_prefix,
-            "docs": "/docs",
-        }
-
     @app.get("/health", include_in_schema=False)
     def health() -> dict:
         return {"status": "ok"}
 
+    # Optionally serve the built SPA from this same origin (see SERVE_FRONTEND).
+    # Registered LAST so the API router, /docs and /health match first; the
+    # catch-all only handles everything else.
+    if settings.serve_frontend and settings.frontend_dist.is_dir():
+        _mount_frontend(app, settings)
+    else:
+        if settings.serve_frontend:
+            logger.warning(
+                "SERVE_FRONTEND is on but %s does not exist — build the frontend "
+                "first (npm run build). Serving API only.",
+                settings.frontend_dist,
+            )
+
+        @app.get("/", include_in_schema=False)
+        def root() -> dict:
+            return {
+                "name": settings.app_name,
+                "version": __version__,
+                "api": settings.api_v1_prefix,
+                "docs": "/docs",
+            }
+
     return app
+
+
+def _mount_frontend(app: FastAPI, settings) -> None:
+    """Serve the built SPA: hashed bundle under /assets, everything else falls
+    back to index.html so client-side routes (deep links, refresh) work."""
+    from fastapi import HTTPException
+    from fastapi.staticfiles import StaticFiles
+    from starlette.responses import FileResponse
+
+    dist = settings.frontend_dist
+    index = dist / "index.html"
+    prefix = settings.api_v1_prefix.lstrip("/")
+
+    assets = dist / "assets"
+    if assets.is_dir():
+        app.mount("/assets", StaticFiles(directory=assets), name="assets")
+
+    @app.get("/{full_path:path}", include_in_schema=False)
+    async def spa(full_path: str) -> FileResponse:
+        # Let unmatched API paths 404 as JSON, not as the HTML shell.
+        if full_path == prefix or full_path.startswith(prefix + "/"):
+            raise HTTPException(status_code=404, detail="Not found")
+        # Serve a real static file (favicon, background video) when it exists,
+        # guarding against path traversal; otherwise hand back the SPA shell.
+        if full_path:
+            candidate = (dist / full_path).resolve()
+            if candidate.is_file() and candidate.is_relative_to(dist.resolve()):
+                return FileResponse(candidate)
+        return FileResponse(index)
+
+    logger.info("Serving frontend from %s", dist)
 
 
 app = create_app()

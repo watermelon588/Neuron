@@ -93,15 +93,36 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         "font-src 'self' https://cdn.jsdelivr.net; "
         "connect-src 'self'; frame-ancestors 'none'; base-uri 'none'"
     )
+    # Policy for the served SPA. Looser than the API because it runs a real web
+    # app: the bundle is same-origin ('self'); React inline styles and Tailwind
+    # need style 'unsafe-inline'; Font Awesome loads from cdnjs and fonts from
+    # Google Fonts; search-result thumbnails come from arbitrary https hosts;
+    # image previews and recorded-audio playback use blob: URLs; avatar uploads
+    # POST to Cloudinary.
+    _APP_CSP = (
+        "default-src 'self'; "
+        "script-src 'self'; "
+        "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; "
+        "font-src 'self' data: https://cdnjs.cloudflare.com https://fonts.gstatic.com; "
+        "img-src 'self' data: blob: https:; "
+        "media-src 'self' blob:; "
+        "connect-src 'self' https://api.cloudinary.com; "
+        "frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+    )
 
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         response = await call_next(request)
         settings = get_settings()
 
-        is_docs = request.url.path.startswith(self._DOC_PATHS)
-        response.headers.setdefault(
-            "Content-Security-Policy", self._DOCS_CSP if is_docs else self._API_CSP
-        )
+        path = request.url.path
+        if path.startswith(self._DOC_PATHS):
+            csp = self._DOCS_CSP
+        elif settings.serve_frontend and not path.startswith(settings.api_v1_prefix):
+            # Served SPA and its static files (everything that isn't the API).
+            csp = self._APP_CSP
+        else:
+            csp = self._API_CSP
+        response.headers.setdefault("Content-Security-Policy", csp)
 
         response.headers.setdefault("X-Content-Type-Options", "nosniff")
         response.headers.setdefault("X-Frame-Options", "DENY")
@@ -215,9 +236,13 @@ class CsrfOriginMiddleware(BaseHTTPMiddleware):
             settings = get_settings()
             allowed = {o.rstrip("/") for o in settings.cors_origins}
             normalized = origin.rstrip("/")
-            # Same-origin requests (the app served from the API host itself)
-            # are always legitimate.
-            same_origin = normalized == str(request.base_url).rstrip("/")
+            # Same-origin requests (the app served from the API host itself, as
+            # behind a Cloudflare quick tunnel) are always legitimate. Compare
+            # the Origin's host to the request's Host header rather than to
+            # request.base_url: base_url's scheme depends on proxy-header
+            # detection, so an HTTPS tunnel fronting a plain-HTTP app would
+            # otherwise read as a scheme mismatch and be wrongly blocked.
+            same_origin = urlparse(origin).netloc == request.headers.get("host", "")
             # In development the Vite dev server may land on any port when
             # 5173 is taken, and it proxies /api through itself — so accept
             # loopback origins locally rather than break `npm run dev`. This

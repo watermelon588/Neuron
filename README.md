@@ -100,6 +100,47 @@ Leave `VITE_API_BASE_URL` **blank** in development: the Vite dev server proxies
 `/api` to the backend so the browser sees one origin and auth cookies stay
 first-party.
 
+### Verify a change in the browser
+
+The Vite dev server hot-reloads. To sanity-check the API without the UI:
+
+```bash
+curl http://127.0.0.1:8000/health                      # {"status":"ok"}
+curl http://127.0.0.1:8000/api/v1/system/capabilities  # live model/provider status
+```
+
+Open `http://127.0.0.1:8000/docs` for the interactive Swagger UI to exercise
+every endpoint by hand.
+
+## Share a live demo over a Cloudflare tunnel (no deploy, no card)
+
+To show someone the running app without deploying, serve it from your own
+machine and expose it on a temporary public HTTPS URL via a Cloudflare **quick
+tunnel** — no account, domain, or credit card, and no code hosted anywhere. The
+link lives only while the script runs.
+
+**One-time:** install cloudflared (`winget install --id Cloudflare.cloudflared`)
+and build the frontend once (`cd frontend && npm run build`).
+
+**Every time**, from the repo root:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\share.ps1
+```
+
+It starts the backend serving the built SPA **and** the API from one origin
+(`SERVE_FRONTEND=true` — so there's no CORS or cross-site-cookie setup), opens
+the tunnel, waits for it to actually connect, then prints the link:
+
+```
+  +==========================================================+
+  |    LIVE:  https://<random-words>.trycloudflare.com    |
+  +==========================================================+
+```
+
+Copy/open/share it; **Ctrl+C** kills it. Full details, gotchas and the
+QUIC-vs-TCP note are in [scripts/SHARE.md](scripts/SHARE.md).
+
 ## API (v1)
 
 | Area | Endpoint | Purpose |
@@ -155,6 +196,19 @@ worker**, or move rate limiting and login throttling to a shared store — both
 are in-process and their limits otherwise multiply by the worker count. An SPA
 host also needs a rewrite of all paths to `/index.html`, or deep links 404.
 
+**Ready-made deploy kits** in the repo:
+
+| Path | Host | Notes |
+|---|---|---|
+| [frontend/vercel.json](frontend/vercel.json) | Vercel (frontend) | SPA rewrites; set root dir to `frontend`, `VITE_API_BASE_URL` to the API URL |
+| [deploy/oracle/](deploy/oracle/) | Oracle Always-Free VM | Full features, $0; Docker Compose + Tailscale Funnel for HTTPS. Needs a card for identity only |
+| [render.yaml](render.yaml) | Render (backend) | One-click Blueprint; needs the paid Standard plan (2 GB RAM) for the ML models |
+| [backend/Dockerfile](backend/Dockerfile) + [backend/README.md](backend/README.md) | Hugging Face Space | Docker Space (now a paid PRO feature) |
+
+The backend needs ~2 GB RAM for the full ML stack; free 512 MB tiers OOM on the
+first model load. For a zero-cost demo, use the Cloudflare tunnel above instead
+of hosting.
+
 ## Configuration
 
 Everything is environment-driven — see [`backend/.env.example`](backend/.env.example).
@@ -194,7 +248,9 @@ serves search with BM25 ranking and extractive document chat.
 ```
 backend/     FastAPI application, ML pipeline, MongoDB repositories
 frontend/    React 19 + Vite SPA
-docs/media/  Brand assets used by this README
+scripts/     share.ps1 — one-command Cloudflare tunnel demo (+ SHARE.md)
+deploy/       Host-specific deploy kits (Oracle VM, …)
+docs/        DEVLOG.md (work history) and media/ (brand assets)
 _archive/    Unused files kept out of the build (gitignored, not deleted)
 design.md    Visual system: tokens, motion, component chrome
 ```

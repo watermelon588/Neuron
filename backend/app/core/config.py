@@ -43,6 +43,14 @@ class Settings(BaseSettings):
     rate_limit_window_seconds: int = 60
     max_upload_size_mb: int = 25
     request_timeout_seconds: int = 60
+    # When true, the API also serves the built frontend (frontend/dist) from
+    # the same origin — the SPA at "/", its bundle under "/assets", and any
+    # client route falling back to index.html. This is what lets a single
+    # Cloudflare quick tunnel expose the whole app over one HTTPS URL, with no
+    # CORS or cross-site-cookie setup (everything is same-origin). Off by
+    # default so API-only deployments (Vercel frontend + separate API) are
+    # unaffected.
+    serve_frontend: bool = False
     # Behind a proxy (Vercel, Render, nginx, a load balancer) every request
     # arrives from the proxy's IP, so per-client rate limiting would lump all
     # users into one bucket. Set this to the number of proxies in front of the
@@ -175,6 +183,11 @@ class Settings(BaseSettings):
         if isinstance(value, str):
             return [origin.strip() for origin in value.split(",") if origin.strip()]
         return value
+
+    @property
+    def frontend_dist(self) -> Path:
+        """Location of the built SPA (repo_root/frontend/dist)."""
+        return BACKEND_DIR.parent / "frontend" / "dist"
 
     @property
     def upload_dir(self) -> Path:
