@@ -40,7 +40,7 @@ export default function Terms() {
             <Section heading="4. Content you upload">
                 <p>
                     You keep ownership of everything you upload. You grant us only the limited
-                    permission needed to operate the Service — to store, process, index and display
+                    permission needed to operate the Service: to store, process, index and display
                     your content back to you.
                 </p>
                 <p>You confirm that you have the right to upload what you submit, and that it does not:</p>
@@ -63,7 +63,7 @@ export default function Terms() {
 
             <Section heading="6. Third-party services">
                 <p>
-                    Neuron depends on third parties to function — including a web search provider,
+                    Neuron depends on third parties to function, including a web search provider,
                     a hosted language-model provider, an image storage provider and a database
                     host. Your use of the Service also involves their processing. Links and results
                     that point to external sites are not endorsements, and we are not responsible

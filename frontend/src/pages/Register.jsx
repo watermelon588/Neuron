@@ -1,14 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { AuthShell, FormError, SubmitButton } from './Login';
-
-const inputStyle = {
-    width: '100%', padding: '12px 16px', borderRadius: '12px',
-    background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)',
-    color: '#fff', fontSize: '14px', outline: 'none',
-    fontFamily: 'Inter, system-ui, sans-serif',
-};
+import { AuthShell, Field, FormError, SubmitButton } from '../components/pulse/AuthShell';
 
 export default function Register() {
     const { register } = useAuth();
@@ -25,11 +18,11 @@ export default function Register() {
         const password = (fd.get('password') || '').toString();
 
         if (!displayName || !email) {
-            setError('Please fill in your name and email');
+            setError('Fill in your name and email.');
             return;
         }
         if (password.length < 8) {
-            setError('Password must be at least 8 characters');
+            setError('Password must be at least 8 characters.');
             return;
         }
         setBusy(true);
@@ -45,35 +38,27 @@ export default function Register() {
     }
 
     return (
-        <AuthShell title="Create your account" subtitle="Upload documents and chat with them in minutes">
-            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        <AuthShell
+            title="Make an account."
+            subtitle="Upload documents and ask them questions in a couple of minutes."
+            aside="Every answer cites the page it came from, so you can check it yourself."
+        >
+            <form className="a-form p-form" onSubmit={handleSubmit} noValidate>
                 <FormError message={error} />
-                <input style={inputStyle} type="text" name="displayName" placeholder="Name"
-                       required maxLength={120} autoComplete="name" />
-                <input style={inputStyle} type="email" name="email" placeholder="Email"
-                       required autoComplete="email" />
-                <input style={inputStyle} type="password" name="password" placeholder="Password (min. 8 characters)"
-                       required minLength={8} autoComplete="new-password" />
-                <SubmitButton busy={busy}>Create account</SubmitButton>
+                <Field label="Name" id="reg-name" type="text" name="displayName" required maxLength={120} autoComplete="name" />
+                <Field label="Email" id="reg-email" type="email" name="email" required autoComplete="email" />
+                <Field
+                    label="Password" id="reg-password" type="password" name="password"
+                    required minLength={8} autoComplete="new-password" hint="At least 8 characters."
+                />
+                <SubmitButton busy={busy}>Create account <i className="fa-solid fa-arrow-right" aria-hidden="true" /></SubmitButton>
+                <p className="p-hint">
+                    By creating an account you agree to the <Link to="/terms" className="p-link">Terms</Link> and{' '}
+                    <Link to="/privacy" className="p-link">Privacy Policy</Link>.
+                </p>
             </form>
-            <p style={{
-                fontSize: 'var(--text-xs)', color: 'var(--text-muted)',
-                marginTop: '16px', textAlign: 'center', lineHeight: 1.6,
-            }}>
-                By creating an account you agree to our{' '}
-                <Link to="/terms" style={{ color: 'var(--accent-text)', textDecoration: 'none' }}>
-                    Terms &amp; Conditions
-                </Link>{' '}
-                and{' '}
-                <Link to="/privacy" style={{ color: 'var(--accent-text)', textDecoration: 'none' }}>
-                    Privacy Policy
-                </Link>.
-            </p>
-            <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.4)', marginTop: '20px', textAlign: 'center' }}>
-                Already registered?{' '}
-                <Link to="/login" className="tap-target" style={{ color: 'rgba(61,139,255,0.9)', textDecoration: 'none' }}>
-                    Sign in
-                </Link>
+            <p className="a-foot">
+                Already registered? <Link to="/login" className="p-link">Sign in</Link>
             </p>
         </AuthShell>
     );

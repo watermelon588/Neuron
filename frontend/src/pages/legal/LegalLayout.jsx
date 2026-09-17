@@ -1,97 +1,58 @@
-import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import Navbar from '../../components/Navbar';
-import Footer from '../../components/Footer';
+import { useRef } from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import PulseLayout from '../../components/pulse/PulseLayout';
+import { gsap, useGsap } from '../../hooks/useGsap';
 
 /** Shared chrome for the Terms and Privacy pages. */
 export default function LegalLayout({ title, updated, children }) {
+    const rootRef = useRef(null);
+    const { pathname } = useLocation();
+
+    useGsap((c) => {
+        if (!c.motion) return;
+        gsap.from('.l-title', { yPercent: 100, fontStretch: '62%', duration: 1.1, ease: 'expo.out' });
+        gsap.utils.toArray('.l-section').forEach((s) => {
+            gsap.from(s, {
+                y: 28, opacity: 0, duration: 0.8, ease: 'expo.out',
+                scrollTrigger: { trigger: s, start: 'top 88%', once: true },
+            });
+        });
+    }, rootRef);
+
     return (
-        <div style={{ position: 'relative', zIndex: 1, minHeight: '100vh' }}>
-            <Navbar />
-
-            <main
-                className="page-gutter"
-                style={{
-                    paddingTop: 'calc(var(--nav-height) + 40px)',
-                    paddingBottom: '80px',
-                }}
-            >
-                <motion.article
-                    initial={{ opacity: 0, y: 12 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-                    className="no-overflow"
-                    style={{ maxWidth: 760, margin: '0 auto' }}
-                >
-                    <p style={{
-                        fontSize: 'var(--text-xs)', fontWeight: 600, textTransform: 'uppercase',
-                        letterSpacing: '0.1em', color: 'var(--text-faint)', marginBottom: '12px',
-                    }}>
-                        Legal
-                    </p>
-                    <h1 style={{
-                        fontSize: 'var(--text-2xl)', fontWeight: 700, color: 'var(--text)',
-                        letterSpacing: 'var(--tracking-tight)', lineHeight: 1.25, marginBottom: '10px',
-                    }}>
-                        {title}
-                    </h1>
-                    <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', marginBottom: '36px' }}>
-                        Last updated {updated}
-                    </p>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
-                        {children}
-                    </div>
-
-                    <div style={{
-                        marginTop: '48px', paddingTop: '22px',
-                        borderTop: '1px solid var(--border)',
-                        display: 'flex', gap: '20px', flexWrap: 'wrap',
-                    }}>
-                        <Link to="/terms" className="tap-target" style={legalLink}>Terms &amp; Conditions</Link>
-                        <Link to="/privacy" className="tap-target" style={legalLink}>Privacy Policy</Link>
-                        <Link to="/" className="tap-target" style={legalLink}>Back to Neuron</Link>
-                    </div>
-                </motion.article>
-            </main>
-
-            <Footer />
-        </div>
+        <PulseLayout>
+            <div ref={rootRef} className="p-container l-wrap">
+                <aside className="l-aside">
+                    <nav aria-label="Legal pages">
+                        <Link to="/terms" aria-current={pathname === '/terms' ? 'page' : undefined}>Terms &amp; Conditions</Link>
+                        <Link to="/privacy" aria-current={pathname === '/privacy' ? 'page' : undefined}>Privacy Policy</Link>
+                    </nav>
+                    <p className="p-mono p-dim">Last updated {updated}</p>
+                </aside>
+                <article className="l-article">
+                    <h1 className="l-title-wrap"><span className="l-title">{title}</span></h1>
+                    <div className="l-body">{children}</div>
+                    <Link to="/" className="p-link l-back">Back to Neuron</Link>
+                </article>
+            </div>
+        </PulseLayout>
     );
 }
-
-const legalLink = {
-    fontSize: 'var(--text-sm)', color: 'var(--accent-text)', textDecoration: 'none',
-};
 
 /* ── Reusable section pieces ─────────────────────────────────────────── */
 
 export function Section({ heading, children }) {
     return (
-        <section>
-            <h2 style={{
-                fontSize: 'var(--text-lg)', fontWeight: 600, color: 'var(--text)',
-                marginBottom: '12px', letterSpacing: 'var(--tracking-tight)',
-            }}>
-                {heading}
-            </h2>
-            <div style={{
-                display: 'flex', flexDirection: 'column', gap: '12px',
-                fontSize: 'var(--text-base)', color: 'var(--text-secondary)', lineHeight: 1.7,
-            }}>
-                {children}
-            </div>
+        <section className="l-section">
+            <h2>{heading}</h2>
+            <div className="l-copy">{children}</div>
         </section>
     );
 }
 
 export function Bullets({ items }) {
     return (
-        <ul style={{
-            display: 'flex', flexDirection: 'column', gap: '9px',
-            paddingLeft: '20px', listStyle: 'disc',
-            color: 'var(--text-secondary)', lineHeight: 1.7,
-        }}>
+        <ul className="l-bullets">
             {items.map((item, i) => <li key={i}>{item}</li>)}
         </ul>
     );

@@ -8,8 +8,6 @@ import Privacy from './pages/legal/Privacy';
 import Documents from './pages/Documents';
 import Chat from './pages/Chat';
 import Profile from './pages/Profile';
-import CustomCursor from './components/CustomCursor';
-import AppBackground from './components/AppBackground';
 import ProtectedRoute from './components/ProtectedRoute';
 import { AuthProvider } from './context/AuthContext';
 import './index.css';
@@ -18,11 +16,7 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        {/* App-wide fixed video background + custom cursor, mounted once so
-            they persist seamlessly across route transitions. */}
-        <AppBackground />
-        <CustomCursor />
-        <div style={{ position: 'relative', zIndex: 1, minHeight: '100vh', color: 'var(--text)' }}>
+        <div style={{ minHeight: '100dvh', background: 'var(--p-bg)' }}>
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/search" element={<Search />} />

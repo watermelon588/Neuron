@@ -10,6 +10,7 @@ from typing import Annotated
 from fastapi import Depends, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pymongo.database import Database
+from pymongo.errors import PyMongoError
 
 from app.core.config import get_settings
 from app.core.exceptions import AuthenticationError
@@ -65,6 +66,15 @@ def get_search_history_repo(db: Db) -> SearchHistoryRepository:
     return SearchHistoryRepository(db)
 
 
+def get_optional_search_history_repo() -> SearchHistoryRepository | None:
+    """History repository, or ``None`` when the database is unreachable, so
+    public search keeps working during a database outage."""
+    try:
+        return SearchHistoryRepository(get_database())
+    except PyMongoError:
+        return None
+
+
 def get_saved_result_repo(db: Db) -> SavedResultRepository:
     return SavedResultRepository(db)
 
@@ -101,15 +111,15 @@ CurrentUser = Annotated[User, Depends(get_current_user)]
 
 def get_optional_user(
     request: Request,
-    users: Annotated[UserRepository, Depends(get_user_repo)],
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)],
 ) -> User | None:
     """Like :func:`get_current_user` but returns ``None`` instead of raising
     when no valid session is present — used by endpoints (e.g. search) that
-    are public but personalise behaviour (history) for signed-in users."""
+    are public but personalise behaviour (history) for signed-in users.
+    A database outage also yields ``None`` so the public endpoint still works."""
     try:
-        return get_current_user(request, users, credentials)
-    except AuthenticationError:
+        return get_current_user(request, UserRepository(get_database()), credentials)
+    except (AuthenticationError, PyMongoError):
         return None
 
 

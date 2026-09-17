@@ -1,6 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
 import { setPendingFiles, clearPendingFiles } from '../fileStore';
 import { transcribe as transcribeApi } from '../services/searchApi';
 
@@ -27,7 +26,7 @@ function pickAudioFormat() {
 
 /* ─── Upload type definitions ───────────────────────────────────── */
 const UPLOAD_TYPES = [
-    { id: 'all', accept: 'image/*,video/*,audio/*', title: 'Add photos & files', faClass: 'fa-solid fa-paperclip' },
+    { id: 'all', accept: 'image/*,video/*,audio/*', title: 'Any media file', faClass: 'fa-solid fa-paperclip' },
     { id: 'image', accept: 'image/*', title: 'Image', faClass: 'fa-regular fa-image' },
     { id: 'video', accept: 'video/*', title: 'Video', faClass: 'fa-solid fa-film' },
     { id: 'audio', accept: 'audio/*', title: 'Audio', faClass: 'fa-solid fa-microphone-lines' },
@@ -46,7 +45,7 @@ function fileKind(file) {
 }
 
 /* ═══ SEARCHBAR ════════════════════════════════════════════════════ */
-export default function SearchBar({ compact = false, initialQuery = '', loading: externalLoading = false }) {
+export default function SearchBar({ compact = false, initialQuery = '', loading: externalLoading = false, autoFocus = false, id = 'neuron-search' }) {
     const [query, setQuery] = useState(initialQuery);
     // Each attachment: { id, file, previewUrl (images only), kind }
     const [attachments, setAttachments] = useState([]);
@@ -138,12 +137,19 @@ export default function SearchBar({ compact = false, initialQuery = '', loading:
     /* ── close menu on outside click ────────────────────────────── */
     useEffect(() => {
         function handleClickOutside(event) {
-            if (menuRef.current && !menuRef.current.contains(event.target) && !event.target.closest('.plus-button')) {
+            if (menuRef.current && !menuRef.current.contains(event.target) && !event.target.closest('.p-plus')) {
                 setShowMenu(false);
             }
         }
-        if (showMenu) document.addEventListener("mousedown", handleClickOutside);
-        return () => document.removeEventListener("mousedown", handleClickOutside);
+        function handleKey(event) { if (event.key === 'Escape') setShowMenu(false); }
+        if (showMenu) {
+            document.addEventListener("mousedown", handleClickOutside);
+            document.addEventListener("keydown", handleKey);
+        }
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+            document.removeEventListener("keydown", handleKey);
+        };
     }, [showMenu]);
 
     /* ── revoke ALL preview object URLs on unmount ──────────────── */
@@ -445,465 +451,207 @@ export default function SearchBar({ compact = false, initialQuery = '', loading:
     const isSubmitting = externalLoading;
     const canSubmit = (!!query.trim() || hasFiles) && !isSubmitting;
 
-    /* ── border / glow styles ───────────────────────────────────── */
-    const borderColor = dragging
-        ? 'rgba(61,139,255,0.65)'
-        : focused ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.10)';
-
-    const glowShadow = dragging
-        ? '0 0 0 2px rgba(61,139,255,0.35), 0 8px 32px rgba(0,0,0,0.45)'
-        : focused
-            ? '0 0 0 1px rgba(255,255,255,0.12), 0 6px 28px rgba(0,0,0,0.40)'
-            : '0 4px 20px rgba(0,0,0,0.30)';
-
     const kindIcon = (kind) =>
         kind === 'audio' ? 'fa-solid fa-microphone'
-            : kind === 'video' ? 'fa-solid fa-video'
+            : kind === 'video' ? 'fa-solid fa-film'
                 : 'fa-solid fa-file';
+
+    const meterWeights = [0.5, 0.8, 1, 0.9, 0.65];
+    const noteTone = micMuted ? 'warn' : micLevel > 0.06 ? 'ok' : undefined;
 
     return (
         <>
-            <motion.form
+            <form
+                role="search"
+                className={`p-search${compact ? ' p-search--compact' : ''}`}
                 onSubmit={handleSubmit}
-                initial={{ opacity: 0, scale: 0.97 }}
-                animate={{ opacity: 1, scale: 1 }}
-                layout
-                transition={{ duration: 0.3, ease: 'easeOut', delay: 0.05 }}
                 onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
-                onDragLeave={() => setDragging(false)}
+                onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setDragging(false); }}
                 onDrop={handleDrop}
-                style={{
-                    position: 'relative',
-                    zIndex: showMenu ? 40 : 20,
-                    width: '100%',
-                    maxWidth: compact ? '640px' : '720px',
-
-                    minHeight: compact ? '52px' : '58px',
-                    height: hasFiles ? 'auto' : (compact ? '52px' : '58px'),
-                    display: 'flex',
-                    flexDirection: hasFiles ? 'column' : 'row',
-                    alignItems: hasFiles ? 'stretch' : 'center',
-                    gap: hasFiles ? '6px' : '8px',
-                    padding: hasFiles ? '14px 16px' : '0 8px',
-
-                    borderRadius: hasFiles ? '24px' : '999px',
-                    border: `1px solid ${borderColor}`,
-                    background: 'rgba(255,255,255,0.07)',
-                    backdropFilter: 'blur(var(--blur-lg))',
-                    WebkitBackdropFilter: 'blur(var(--blur-lg))',
-                    boxShadow: glowShadow,
-                    transition: 'border-color 0.2s ease, box-shadow 0.2s ease, border-radius 0.3s ease, padding 0.3s ease',
-                    overflow: 'visible',
-                }}
             >
-                {/* hidden file input (multiple) */}
-                <input type="file" multiple ref={fileInputRef} style={{ display: 'none' }} onChange={handleFileChange} />
+                <input type="file" multiple ref={fileInputRef} hidden onChange={handleFileChange} />
 
-                {/* ── TOP ROW: attachment previews (row of thumbnails) ──────────── */}
-                <AnimatePresence>
+                <div className="p-search-box" data-focused={focused} data-dragging={dragging}>
                     {hasFiles && (
-                        <motion.div
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: 'auto' }}
-                            exit={{ opacity: 0, height: 0 }}
-                            transition={{ duration: 0.2 }}
-                            style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignSelf: 'flex-start', marginBottom: '4px', zIndex: 10 }}
-                        >
+                        <ul className="p-attachments" aria-label="Attached files" style={{ listStyle: 'none', margin: 0 }}>
                             {attachments.map(att => (
-                                <div key={att.id} style={{ position: 'relative', flexShrink: 0 }}>
-                                    <div style={{
-                                        width: '48px',
-                                        height: '48px',
-                                        borderRadius: '10px',
-                                        overflow: 'hidden',
-                                        background: att.previewUrl ? 'transparent' : 'rgba(255,255,255,0.10)',
-                                        border: '1px solid rgba(255,255,255,0.2)',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                                    }}>
-                                        {att.previewUrl ? (
-                                            <img src={att.previewUrl} alt="preview"
-                                                 style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                                        ) : (
-                                            <i className={kindIcon(att.kind)} style={{ fontSize: '18px', color: 'rgba(61,139,255,0.85)' }} />
-                                        )}
-                                    </div>
+                                <li key={att.id} className="p-attach">
+                                    <span className="p-attach-thumb">
+                                        {att.previewUrl
+                                            ? <img src={att.previewUrl} alt="" />
+                                            : <i className={kindIcon(att.kind)} aria-hidden="true" />}
+                                    </span>
+                                    <span className="p-attach-name" title={att.file.name}>{att.file.name}</span>
                                     <button
                                         type="button"
+                                        className="p-attach-remove"
                                         onClick={() => removeFile(att.id)}
-                                        title="Remove file"
-                                        style={{
-                                            position: 'absolute', top: '-6px', right: '-6px',
-                                            width: '20px', height: '20px', borderRadius: '50%',
-                                            background: 'rgba(20,20,30,0.95)', border: '1px solid rgba(255,255,255,0.2)',
-                                            color: 'rgba(255,255,255,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                            cursor: 'pointer', padding: 0, lineHeight: 1, zIndex: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
-                                            transition: 'background 0.15s ease, transform 0.15s ease',
-                                        }}
-                                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(220,50,50,0.95)'; e.currentTarget.style.transform = 'scale(1.1)'; }}
-                                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(20,20,30,0.95)'; e.currentTarget.style.transform = 'scale(1)'; }}
+                                        aria-label={`Remove ${att.file.name}`}
                                     >
-                                        <i className="fa-solid fa-xmark" style={{ fontSize: '11px', pointerEvents: 'none' }} />
+                                        <i className="fa-solid fa-xmark" aria-hidden="true" />
                                     </button>
-                                </div>
+                                </li>
                             ))}
-                        </motion.div>
+                        </ul>
                     )}
-                </AnimatePresence>
 
-                {/* ── BOTTOM ROW: Controls + Input ──────────────────────── */}
-                <div style={{ display: 'flex', width: '100%', alignItems: 'center', gap: '8px', flex: 1 }}>
-
-                    {/* ── Left: [+] button and Menu ──────────────────────── */}
-                    <div style={{ position: 'relative', flexShrink: 0 }}>
-                        <button
-                            type="button"
-                            className="plus-button"
-                            onClick={() => setShowMenu(prev => !prev)}
-                            style={{
-                                width: '36px', height: '36px', borderRadius: '50%',
-                                background: showMenu ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.05)',
-                                border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.8)',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-                                transition: 'all 0.15s ease',
-                            }}
-                            onMouseEnter={e => { if (!showMenu) e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
-                            onMouseLeave={e => { if (!showMenu) e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
-                        >
-                            <i className="fa-solid fa-plus" style={{ fontSize: '15px', pointerEvents: 'none' }} />
-                        </button>
-
-                        <AnimatePresence>
+                    <div className="p-search-row">
+                        <div style={{ position: 'relative' }}>
+                            <button
+                                type="button"
+                                className="p-icon-btn p-plus"
+                                onClick={() => setShowMenu(prev => !prev)}
+                                aria-label="Attach an image, video or audio file"
+                                aria-haspopup="menu"
+                                aria-expanded={showMenu}
+                            >
+                                <i className="fa-solid fa-plus" aria-hidden="true" />
+                            </button>
                             {showMenu && (
-                                <motion.div
-                                    ref={menuRef}
-                                    initial={{ opacity: 0, y: -8, scale: 0.96 }}
-                                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                                    exit={{ opacity: 0, y: -8, scale: 0.96 }}
-                                    transition={{ duration: 0.15, ease: 'easeOut' }}
-                                    style={{
-                                        position: 'absolute', top: 'calc(100% + 12px)', left: 0,
-                                        background: 'rgba(14,15,18,0.96)', border: '1px solid var(--border-strong)',
-                                        borderRadius: '14px', padding: '8px', display: 'flex', flexDirection: 'column', gap: '2px',
-                                        backdropFilter: 'blur(var(--blur-xl))', WebkitBackdropFilter: 'blur(var(--blur-xl))',
-                                        boxShadow: 'var(--shadow-pop)', zIndex: 1000, minWidth: '190px',
-                                    }}
-                                >
+                                <div ref={menuRef} className="p-menu" role="menu">
                                     {UPLOAD_TYPES.map(type => (
                                         <button
                                             key={type.id}
                                             type="button"
+                                            role="menuitem"
                                             onClick={() => { handleUploadClick(type); setShowMenu(false); }}
-                                            style={{
-                                                display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 14px',
-                                                borderRadius: '8px', background: 'transparent', border: 'none',
-                                                color: 'rgba(209,213,219,1)', fontSize: '14px', fontWeight: 500,
-                                                fontFamily: 'Inter, system-ui, sans-serif', cursor: 'pointer', textAlign: 'left',
-                                                transition: 'background 0.15s ease, color 0.15s ease',
-                                            }}
-                                            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = '#fff'; }}
-                                            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(209,213,219,1)'; }}
                                         >
-                                            <i className={type.faClass} style={{ width: '16px', textAlign: 'center', fontSize: '15px' }} />
+                                            <i className={type.faClass} aria-hidden="true" />
                                             {type.title}
                                         </button>
                                     ))}
-                                </motion.div>
+                                </div>
                             )}
-                        </AnimatePresence>
+                        </div>
+
+                        <label htmlFor={id} className="p-sr-only">Search the web</label>
+                        <input
+                            id={id}
+                            type="search"
+                            className="p-search-input"
+                            value={query}
+                            onChange={(e) => setQuery(e.target.value)}
+                            onKeyDown={handleKeyDown}
+                            onFocus={() => setFocused(true)}
+                            onBlur={() => setFocused(false)}
+                            placeholder={hasFiles ? 'Add words to refine your files' : 'Ask anything, or drop in a file'}
+                            autoComplete="off"
+                            enterKeyHint="search"
+                            autoFocus={autoFocus}
+                        />
+
+                        <button type="button" className="p-icon-btn" onClick={handleMicClick} aria-label="Search by voice">
+                            <i className="fa-solid fa-microphone" aria-hidden="true" />
+                        </button>
+
+                        <button type="submit" className="p-search-submit" disabled={!canSubmit} aria-label="Search">
+                            {isSubmitting
+                                ? <i className="fa-solid fa-circle-notch p-spin" aria-hidden="true" />
+                                : <i className="fa-solid fa-arrow-right" aria-hidden="true" />}
+                            {!compact && <span className="p-search-submit-label">Search</span>}
+                        </button>
                     </div>
 
-                    {/* ── Text input ──────────────────────────────────────── */}
-                    <input
-                        type="text"
-                        value={query}
-                        onChange={(e) => setQuery(e.target.value)}
-                        onKeyDown={handleKeyDown}
-                        onFocus={() => setFocused(true)}
-                        onBlur={() => setFocused(false)}
-                        placeholder={hasFiles ? "Add words to refine your media…" : "Ask anything…"}
-                        style={{
-                            // Stretch to the pill's full height so the whole
-                            // vertical band is tappable — a 22px-tall input is
-                            // a fiddly thumb target on a phone.
-                            flex: 1, minWidth: 0, alignSelf: 'stretch',
-                            background: 'transparent', border: 'none', outline: 'none',
-                            color: '#fff', paddingLeft: '6px', fontSize: compact ? '14px' : '15px',
-                            fontFamily: 'Inter, system-ui, sans-serif', letterSpacing: '-0.01em',
-                            caretColor: 'rgba(255,255,255,0.7)',
-                        }}
-                    />
-
-                    {/* ── Voice recording button (🎤) ─────────────────────── */}
-                    <button
-                        type="button"
-                        onClick={handleMicClick}
-                        title="Record voice"
-                        style={{
-                            width: '34px', height: '34px', borderRadius: '50%', background: 'transparent',
-                            border: '1px solid transparent', color: 'rgba(255,255,255,0.4)', display: 'flex',
-                            alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-                            transition: 'all 0.15s ease', flexShrink: 0,
-                        }}
-                        onMouseEnter={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.9)'; e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; }}
-                        onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.4)'; e.currentTarget.style.background = 'transparent'; }}
-                    >
-                        <i className="fa-solid fa-microphone" style={{ fontSize: '15px', pointerEvents: 'none' }} />
-                    </button>
-
-                    {/* ── Submit button (⬆) ────────────────────────────────── */}
-                    <motion.button
-                        type="submit"
-                        disabled={!canSubmit}
-                        whileHover={canSubmit ? { scale: 1.05 } : {}}
-                        whileTap={canSubmit ? { scale: 0.95 } : {}}
-                        transition={{ type: 'spring', stiffness: 420, damping: 22 }}
-                        style={{
-                            width: '36px', height: '36px', borderRadius: '50%',
-                            background: canSubmit ? '#fff' : 'rgba(255,255,255,0.1)', border: 'none',
-                            color: canSubmit ? '#000' : 'rgba(255,255,255,0.3)', display: 'flex',
-                            alignItems: 'center', justifyContent: 'center', cursor: canSubmit ? 'pointer' : 'not-allowed',
-                            flexShrink: 0, transition: 'background 0.2s ease, color 0.2s ease',
-                        }}
-                    >
-                        {isSubmitting ? (
-                            <i className="fa-solid fa-circle-notch fa-spin" style={{ fontSize: '15px' }} />
-                        ) : (
-                            <i className="fa-solid fa-arrow-up" style={{ fontSize: '16px' }} />
-                        )}
-                    </motion.button>
+                    {dragging && (
+                        <div className="p-drop-hint">
+                            <span><i className="fa-solid fa-cloud-arrow-up" aria-hidden="true" /> Drop to attach</span>
+                        </div>
+                    )}
                 </div>
+            </form>
 
-                {/* ── Drag-over overlay ────────────────────────────────── */}
-                {dragging && (
-                    <div style={{
-                        position: 'absolute', inset: 0, borderRadius: hasFiles ? '24px' : '999px',
-                        background: 'rgba(61,139,255,0.10)', border: '1.5px dashed rgba(61,139,255,0.55)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none',
-                        zIndex: 10, transition: 'border-radius 0.3s ease',
-                    }}>
-                        <span style={{ fontSize: '13px', fontWeight: 600, color: 'rgba(145,185,255,0.90)' }}>
-                            <i className="fa-solid fa-cloud-arrow-up" style={{ marginRight: '6px' }} />
-                            Drop to attach
-                        </span>
+            {showVoiceModal && (
+                <div
+                    className="p-modal"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="p-voice-title"
+                    onKeyDown={(e) => { if (e.key === 'Escape') closeVoiceModal(); }}
+                >
+                    <div className="p-modal-card">
+                        {!audioBlob ? (
+                            <>
+                                <div className="p-meter" aria-hidden="true">
+                                    {meterWeights.map((w, i) => (
+                                        <i key={i} style={{ transform: `scaleY(${isRecording ? Math.max(0.08, micLevel * w) : 0.08})` }} />
+                                    ))}
+                                </div>
+                                <h3 id="p-voice-title">
+                                    {voiceError ? 'Can’t record' : isRecording ? 'Listening' : 'Connecting'}
+                                </h3>
+                                {isRecording && (
+                                    <p className="p-modal-note" data-tone={noteTone} aria-live="polite">
+                                        {micMuted
+                                            ? 'Windows is sending no audio from this mic. Unmute it in Settings > System > Sound > Input, or on your headset.'
+                                            : micLevel > 0.06 ? 'Hearing you' : 'No sound yet. Try speaking up.'}
+                                        {micLabel && <span className="p-mono p-dim" style={{ display: 'block', marginTop: 4 }}>{micLabel}</span>}
+                                    </p>
+                                )}
+                                {voiceError && <p className="p-modal-error" role="alert">{voiceError}</p>}
+                                {voiceError ? (
+                                    <div className="p-modal-actions">
+                                        <button type="button" className="p-btn p-btn-accent" onClick={closeVoiceModal} autoFocus>Close</button>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <button
+                                            type="button"
+                                            className="p-rec-btn"
+                                            onClick={stopRecording}
+                                            disabled={!isRecording}
+                                            aria-label="Stop recording"
+                                            autoFocus
+                                        >
+                                            <span />
+                                        </button>
+                                        <button type="button" className="p-text-btn" onClick={closeVoiceModal}>Cancel</button>
+                                    </>
+                                )}
+                            </>
+                        ) : (
+                            <>
+                                <h3 id="p-voice-title">Your recording</h3>
+                                <div className="p-clip">
+                                    <button type="button" onClick={togglePlayback} aria-label={isPlaying ? 'Pause' : 'Play recording'}>
+                                        <i className={`fa-solid ${isPlaying ? 'fa-pause' : 'fa-play'}`} aria-hidden="true" />
+                                    </button>
+                                    <span>
+                                        {isPlaying ? 'Playing' : 'Tap to play'}
+                                        <span className="p-mono p-dim" style={{ display: 'block' }}>
+                                            {Math.max(1, Math.round(audioBlob.size / 1024))} KB
+                                            {clipInfo?.durationMs ? `, ${(clipInfo.durationMs / 1000).toFixed(1)}s` : ''}
+                                            {clipInfo ? `, peak ${(clipInfo.peak * 100).toFixed(0)}%` : ''}
+                                        </span>
+                                    </span>
+                                </div>
+                                {voiceError && <p className="p-modal-error" role="alert">{voiceError}</p>}
+                                <div className="p-modal-actions">
+                                    <button type="button" className="p-btn p-btn-accent" onClick={useAsText} disabled={transcribing} autoFocus>
+                                        {transcribing
+                                            ? <><i className="fa-solid fa-circle-notch p-spin" aria-hidden="true" /> Transcribing</>
+                                            : <><i className="fa-solid fa-font" aria-hidden="true" /> Use as text</>}
+                                    </button>
+                                    <div className="p-row">
+                                        <button type="button" className="p-btn p-btn-ghost" onClick={closeVoiceModal}>Cancel</button>
+                                        <button
+                                            type="button"
+                                            className="p-btn p-btn-ghost"
+                                            onClick={() => {
+                                                const ext = formatRef.current?.ext || 'webm';
+                                                const audioFile = new File([audioBlob], `recording.${ext}`, { type: audioBlob.type });
+                                                applyFiles([audioFile]);
+                                                closeVoiceModal();
+                                            }}
+                                        >
+                                            Attach clip
+                                        </button>
+                                    </div>
+                                </div>
+                            </>
+                        )}
                     </div>
-                )}
-            </motion.form>
-
-            {/* ── Voice Recording Modal ──────────────────────────────── */}
-            <AnimatePresence>
-                {showVoiceModal && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        style={{
-                            position: 'fixed', inset: 0, zIndex: 9999, display: 'flex',
-                            alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.6)',
-                            backdropFilter: 'blur(var(--blur-sm))', WebkitBackdropFilter: 'blur(var(--blur-sm))',
-                        }}
-                    >
-                        <motion.div
-                            initial={{ scale: 0.9, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0.9, opacity: 0 }}
-                            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                            style={{
-                                background: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(var(--blur-xl))', WebkitBackdropFilter: 'blur(var(--blur-xl))',
-                                border: '1px solid rgba(255,255,255,0.2)', borderRadius: '16px', padding: '32px', width: '320px',
-                                display: 'flex', flexDirection: 'column', alignItems: 'center', boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
-                            }}
-                        >
-                            {!audioBlob ? (
-                                <>
-                                    {/* Bars are driven by the real input level, so a dead
-                                        mic is visible immediately instead of after a
-                                        failed transcription. */}
-                                    <div style={{ display: 'flex', gap: '8px', height: '48px', alignItems: 'center', marginBottom: '14px' }}>
-                                        {[0.55, 0.85, 1, 0.7].map((weight, i) => (
-                                            <div
-                                                key={i}
-                                                style={{
-                                                    width: '12px', height: '100%', background: '#000', borderRadius: '999px',
-                                                    transform: `scaleY(${isRecording ? Math.max(0.1, micLevel * weight) : 0.1})`,
-                                                    transition: 'transform 80ms linear',
-                                                }}
-                                            />
-                                        ))}
-                                    </div>
-                                    <div style={{ fontSize: '18px', fontWeight: 500, color: '#fff', marginBottom: isRecording ? '6px' : voiceError ? '14px' : '32px', textShadow: '0 1px 4px rgba(0,0,0,0.4)' }}>
-                                        {voiceError ? 'Can’t record' : isRecording ? 'Listening…' : 'Connecting…'}
-                                    </div>
-                                    {isRecording && (
-                                        <div style={{
-                                            fontSize: '11px',
-                                            color: micMuted
-                                                ? 'rgba(252,211,77,0.95)'
-                                                : micLevel > 0.06 ? 'rgba(134,239,172,0.9)' : 'rgba(255,255,255,0.5)',
-                                            textAlign: 'center', marginBottom: voiceError ? '14px' : '26px', lineHeight: 1.5,
-                                            maxWidth: '250px',
-                                        }}>
-                                            {micMuted
-                                                ? 'Windows is sending no audio from this mic — unmute it in Settings → System → Sound → Input (or the mute key/switch on your headset).'
-                                                : micLevel > 0.06 ? 'Hearing you' : 'No sound yet — speak up'}
-                                            {micLabel && <span style={{ display: 'block', color: 'rgba(255,255,255,0.4)' }}>{micLabel}</span>}
-                                        </div>
-                                    )}
-
-                                    {voiceError && (
-                                        <p style={{
-                                            fontSize: '12.5px', color: 'rgba(252,165,165,0.95)', textAlign: 'center',
-                                            lineHeight: 1.55, marginBottom: '22px',
-                                        }}>
-                                            {voiceError}
-                                        </p>
-                                    )}
-
-                                    {voiceError ? (
-                                        <button
-                                            type="button"
-                                            onClick={closeVoiceModal}
-                                            style={{
-                                                width: '100%', padding: '10px', borderRadius: '12px', background: '#fff',
-                                                border: 'none', color: '#000', fontWeight: 600, cursor: 'pointer',
-                                                fontFamily: 'Inter, system-ui, sans-serif',
-                                            }}
-                                        >
-                                            Close
-                                        </button>
-                                    ) : (
-                                        <>
-                                            <button
-                                                type="button"
-                                                onClick={stopRecording}
-                                                aria-label="Stop recording"
-                                                style={{
-                                                    width: '56px', height: '56px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)',
-                                                    border: '1px solid rgba(255,255,255,0.2)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                    cursor: isRecording ? 'pointer' : 'not-allowed', boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
-                                                    transition: 'background 0.2s ease', opacity: isRecording ? 1 : 0.5, position: 'relative'
-                                                }}
-                                                onMouseEnter={e => { if (isRecording) e.currentTarget.style.background = 'rgba(255,255,255,0.2)' }}
-                                                onMouseLeave={e => { if (isRecording) e.currentTarget.style.background = 'rgba(255,255,255,0.1)' }}
-                                            >
-                                                <motion.div
-                                                    animate={{ scale: isRecording ? [1, 1.15, 1] : 1 }}
-                                                    transition={{ repeat: Infinity, duration: 1.5 }}
-                                                    style={{ width: '16px', height: '16px', background: '#ef4444', borderRadius: '50%', boxShadow: '0 0 12px rgba(239,68,68,0.8)' }}
-                                                />
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={closeVoiceModal}
-                                                style={{
-                                                    marginTop: '18px', background: 'transparent', border: 'none',
-                                                    color: 'rgba(255,255,255,0.6)', fontSize: '12px', cursor: 'pointer',
-                                                    fontFamily: 'Inter, system-ui, sans-serif',
-                                                }}
-                                            >
-                                                Cancel
-                                            </button>
-                                        </>
-                                    )}
-                                </>
-                            ) : (
-                                <>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px', background: 'rgba(255,255,255,0.1)', padding: '12px 20px', borderRadius: '999px', marginBottom: '18px', width: '100%', border: '1px solid rgba(255,255,255,0.15)' }}>
-                                        <button
-                                            type="button"
-                                            onClick={togglePlayback}
-                                            aria-label={isPlaying ? 'Pause' : 'Play recording'}
-                                            style={{
-                                                width: '36px', height: '36px', borderRadius: '50%', background: '#fff',
-                                                border: 'none', color: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-                                                flexShrink: 0,
-                                            }}
-                                        >
-                                            <i className={`fa-solid ${isPlaying ? 'fa-pause' : 'fa-play'}`} style={{ fontSize: '14px', marginLeft: isPlaying ? '0' : '2px' }} />
-                                        </button>
-                                        <div style={{ flex: 1, minWidth: 0, fontSize: '14px', color: '#fff', fontWeight: 500 }}>
-                                            {isPlaying ? 'Playing…' : 'Tap to play'}
-                                            <span style={{ display: 'block', fontSize: '11px', color: 'rgba(255,255,255,0.55)', fontWeight: 400 }}>
-                                                {Math.max(1, Math.round(audioBlob.size / 1024))} KB
-                                                {clipInfo?.durationMs ? ` · ${(clipInfo.durationMs / 1000).toFixed(1)}s` : ''}
-                                                {clipInfo ? ` · peak ${(clipInfo.peak * 100).toFixed(0)}%` : ''}
-                                            </span>
-                                        </div>
-                                    </div>
-
-                                    {voiceError && (
-                                        <p style={{
-                                            width: '100%', fontSize: '12px', color: 'rgba(252,165,165,0.95)',
-                                            marginBottom: '14px', lineHeight: 1.5,
-                                        }}>
-                                            {voiceError}
-                                        </p>
-                                    )}
-
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%' }}>
-                                        {/* Primary: transcribe to text and drop it in the query box. */}
-                                        <button
-                                            type="button"
-                                            onClick={useAsText}
-                                            disabled={transcribing}
-                                            style={{
-                                                width: '100%', padding: '11px', borderRadius: '12px', background: '#fff',
-                                                border: 'none', color: '#000', fontWeight: 600,
-                                                cursor: transcribing ? 'wait' : 'pointer',
-                                                fontFamily: 'Inter, system-ui, sans-serif', opacity: transcribing ? 0.75 : 1,
-                                                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                                            }}
-                                        >
-                                            {transcribing ? (
-                                                <><i className="fa-solid fa-circle-notch fa-spin" style={{ fontSize: '13px' }} /> Transcribing…</>
-                                            ) : (
-                                                <><i className="fa-solid fa-wand-magic-sparkles" style={{ fontSize: '13px' }} /> Use as text</>
-                                            )}
-                                        </button>
-
-                                        <div style={{ display: 'flex', gap: '10px', width: '100%' }}>
-                                            <button
-                                                type="button"
-                                                onClick={closeVoiceModal}
-                                                style={{
-                                                    flex: 1, padding: '10px', borderRadius: '12px', background: 'transparent',
-                                                    border: '1px solid rgba(255,255,255,0.3)', color: '#fff', cursor: 'pointer',
-                                                    transition: 'background 0.2s', fontWeight: 500, fontFamily: 'Inter, system-ui, sans-serif',
-                                                }}
-                                                onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
-                                                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                                            >
-                                                Cancel
-                                            </button>
-                                            {/* Secondary: keep the clip as a multimodal attachment. */}
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    const ext = formatRef.current?.ext || 'webm';
-                                                    const audioFile = new File([audioBlob], `recording.${ext}`, { type: audioBlob.type });
-                                                    applyFiles([audioFile]);
-                                                    closeVoiceModal();
-                                                }}
-                                                style={{
-                                                    flex: 1, padding: '10px', borderRadius: '12px', background: 'rgba(255,255,255,0.12)',
-                                                    border: '1px solid rgba(255,255,255,0.3)', color: '#fff', fontWeight: 500,
-                                                    cursor: 'pointer', fontFamily: 'Inter, system-ui, sans-serif',
-                                                }}
-                                                onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}
-                                                onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.12)'}
-                                            >
-                                                Attach clip
-                                            </button>
-                                        </div>
-                                    </div>
-                                </>
-                            )}
-                        </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+                </div>
+            )}
         </>
     );
 }

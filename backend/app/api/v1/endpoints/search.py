@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, File, Form, UploadFile
 
 from app.api.deps import (
     OptionalUser,
-    get_search_history_repo,
+    get_optional_search_history_repo,
     get_search_orchestrator,
 )
 from app.core.config import get_settings
@@ -21,7 +21,7 @@ from app.services.search.orchestrator import SearchOrchestrator
 router = APIRouter(prefix="/search", tags=["Search"])
 
 Orchestrator = Annotated[SearchOrchestrator, Depends(get_search_orchestrator)]
-HistoryRepo = Annotated[SearchHistoryRepository, Depends(get_search_history_repo)]
+HistoryRepo = Annotated[SearchHistoryRepository | None, Depends(get_optional_search_history_repo)]
 
 
 @router.post(
@@ -71,7 +71,7 @@ async def search(
     )
 
     # Record history for signed-in users (first page only, best-effort).
-    if optional_user is not None and page == 1:
+    if optional_user is not None and history is not None and page == 1:
         try:
             history.add(
                 optional_user.id,

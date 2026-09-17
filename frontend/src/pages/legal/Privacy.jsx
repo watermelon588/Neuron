@@ -9,21 +9,21 @@ export default function Privacy() {
             <Section heading="1. Overview">
                 <p>
                     This policy explains what Neuron collects, why, and what control you have. We
-                    collect the minimum needed to run the Service — we do not sell your data and we
+                    collect the minimum needed to run the Service. We do not sell your data and we
                     do not use advertising trackers.
                 </p>
             </Section>
 
             <Section heading="2. What we collect">
                 <Bullets items={[
-                    'Account data — your email address, display name, optional bio and optional profile photo.',
-                    'Authentication data — a hashed password (PBKDF2-SHA256 with a per-user salt). Your plaintext password is never stored.',
-                    'Search history — the interpreted text of searches you run while signed in, along with the modality used and how many results came back.',
-                    'Saved results — any search result you explicitly bookmark.',
-                    'Uploaded content — documents you upload for chat, and the media (images, audio, video) you attach to a search.',
-                    'Chat data — your questions and the generated answers, so conversations persist.',
-                    'Feedback — the message you submit and, optionally, an email to reply to.',
-                    'Technical logs — request IDs, timestamps and error diagnostics. Sensitive fields are redacted.',
+                    'Account data: your email address, display name, optional bio and optional profile photo.',
+                    'Authentication data: a hashed password (PBKDF2-SHA256 with a per-user salt). Your plaintext password is never stored.',
+                    'Search history: the interpreted text of searches you run while signed in, along with the modality used and how many results came back.',
+                    'Saved results: any search result you explicitly bookmark.',
+                    'Uploaded content: documents you upload for chat, and the media (images, audio, video) you attach to a search.',
+                    'Chat data: your questions and the generated answers, so conversations persist.',
+                    'Feedback: the message you submit and, optionally, an email to reply to.',
+                    'Technical logs: request IDs, timestamps and error diagnostics. Sensitive fields are redacted.',
                 ]} />
             </Section>
 
@@ -42,7 +42,7 @@ export default function Privacy() {
 
             <Section heading="4. Media & search inputs">
                 <p>
-                    Media you attach to a search is processed to build the query — audio is
+                    Media you attach to a search is processed to build the query: audio is
                     transcribed, images are described and converted into an embedding vector, and
                     video frames are sampled. Query text derived from your input is sent to our
                     third-party search provider in order to fetch results.
@@ -55,11 +55,11 @@ export default function Privacy() {
 
             <Section heading="5. Third parties we share data with">
                 <Bullets items={[
-                    'Search provider (Serper) — receives your interpreted query text to return live web results.',
-                    'Language-model provider (Groq, when configured) — receives query text and document excerpts to generate answers. If no key is configured, a local model is used instead and nothing leaves the server.',
-                    'Cloudinary — stores your profile photo if you upload one. The image is sent directly from your browser to Cloudinary.',
-                    'MongoDB host — stores your account, history, saved results, documents and chats.',
-                    'Email (SMTP) — used only to deliver feedback messages you submit.',
+                    'Search provider (Serper): receives your interpreted query text to return live web results.',
+                    'Language-model provider (Groq, when configured): receives query text and document excerpts to generate answers. If no key is configured, a local model is used instead and nothing leaves the server.',
+                    'Cloudinary: stores your profile photo if you upload one. The image is sent directly from your browser to Cloudinary.',
+                    'MongoDB host: stores your account, history, saved results, documents and chats.',
+                    'Email (SMTP): used only to deliver feedback messages you submit.',
                 ]} />
                 <p>
                     Each third party processes data under its own privacy policy. We share only
@@ -94,7 +94,7 @@ export default function Privacy() {
             <Section heading="8. Retention">
                 <p>
                     Account data is kept until you ask us to delete it. Documents, chats, saved
-                    results and history are kept until you delete them — history can be cleared,
+                    results and history are kept until you delete them. History can be cleared,
                     and saved results and documents removed, from your profile at any time.
                     Deleting a document also removes its extracted chunks and vectors.
                 </p>

@@ -1,0 +1,36 @@
+/* Review-only toolbar for flipping between concepts. Not part of any design. */
+.concept-switch {
+  position: fixed;
+  left: 50%;
+  bottom: 16px;
+  z-index: 90;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 999px;
+  background: rgba(18, 18, 20, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+  font: 500 13px/1 system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+.concept-switch span {
+  padding: 0 10px 0 12px;
+  color: rgba(255, 255, 255, 0.6);
+}
+.concept-switch a {
+  padding: 9px 14px;
+  border-radius: 999px;
+  color: rgba(255, 255, 255, 0.86);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.concept-switch a:hover { background: rgba(255, 255, 255, 0.08); }
+.concept-switch a[aria-current="page"] { background: #f2f0eb; color: #111; }
+@media (max-width: 480px) {
+  .concept-switch span { display: none; }
+  .concept-switch a { padding: 9px 11px; }
+}

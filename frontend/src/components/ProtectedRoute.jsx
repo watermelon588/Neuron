@@ -7,11 +7,9 @@ export default function ProtectedRoute({ children }) {
 
     if (initializing) {
         return (
-            <div style={{
-                minHeight: '100vh', display: 'flex', alignItems: 'center',
-                justifyContent: 'center', color: 'rgba(255,255,255,0.4)', fontSize: '14px',
-            }}>
-                Loading…
+            <div className="pulse p-boot" role="status" aria-live="polite">
+                <span className="p-boot-bars" aria-hidden="true"><i /><i /><i /></span>
+                <span className="p-mono p-dim">Checking your session</span>
             </div>
         );
     }

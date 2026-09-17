@@ -1,0 +1,84 @@
+/* Documents page */
+.d-wrap { padding-bottom: 120px; }
+.d-head { display: grid; gap: 18px; }
+
+.d-drop {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 20px;
+  padding: 24px;
+  border: 1px dashed var(--p-line-2);
+  background: var(--p-bg-2);
+  transition: border-color 0.2s, background-color 0.2s;
+}
+.d-drop[data-dragging="true"] { border-color: var(--p-accent); background: var(--p-accent-soft); }
+.d-drop-icon { width: 56px; height: 56px; display: grid; place-items: center; background: var(--p-accent); color: var(--p-accent-ink); font-size: 20px; }
+.d-drop[data-busy="true"] .d-drop-icon { background: var(--p-bg-4); color: var(--p-accent); }
+.d-drop-text { display: grid; gap: 4px; min-width: 0; }
+.d-drop-text b { font-weight: 800; font-stretch: 112%; font-size: 22px; line-height: 1.15; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.d-error { margin-top: 16px; }
+
+.d-bar {
+  position: sticky; top: var(--p-nav-h); z-index: 20;
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px;
+  margin-top: 40px; padding: 12px 0;
+  background: var(--p-bg); border-bottom: 1px solid var(--p-line);
+}
+.d-bar p { color: var(--p-ink-2); }
+.d-bar-actions { display: flex; gap: 6px; }
+
+.d-list { list-style: none; margin: 16px 0 0; padding: 0; display: grid; gap: 4px; }
+.d-row {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 16px;
+  background: var(--p-bg-2);
+  border: 1px solid var(--p-line);
+  transition: border-color 0.2s, background-color 0.2s;
+}
+.d-row:hover { border-color: var(--p-line-2); }
+.d-row[data-selected="true"] { border-color: var(--p-accent); box-shadow: inset 3px 0 var(--p-accent); }
+.d-row--skel { grid-template-columns: 1fr; gap: 8px; }
+.d-row--skel span { height: 14px; }
+.d-row--skel span + span { width: 40%; }
+
+.d-check { position: relative; width: 24px; height: 24px; cursor: pointer; }
+.d-check input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+.d-check span { position: absolute; inset: 0; display: grid; place-items: center; border: 1px solid var(--p-line-2); color: transparent; font-size: 12px; pointer-events: none; }
+.d-check input:checked + span { background: var(--p-accent); border-color: var(--p-accent); color: var(--p-accent-ink); }
+.d-check input:focus-visible + span { outline: 2px solid var(--p-accent); outline-offset: 2px; }
+.d-check[data-disabled="true"] { opacity: 0.35; cursor: not-allowed; }
+.d-icon { font-size: 22px; color: var(--p-accent); width: 24px; text-align: center; }
+.d-info { display: grid; gap: 2px; min-width: 0; }
+.d-info b { font-weight: 600; font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.d-doc-error { font-size: 13px; color: var(--p-low); }
+.d-status { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; padding: 3px 7px; border: 1px solid currentColor; color: var(--p-mute); }
+.d-status[data-status="ready"] { color: var(--p-high); }
+.d-status[data-status="processing"] { color: var(--p-medium); }
+.d-status[data-status="failed"] { color: var(--p-low); }
+.d-actions { display: flex; align-items: center; gap: 6px; }
+.d-del { width: 44px; height: 44px; display: grid; place-items: center; border: 1px solid var(--p-line-2); background: none; color: var(--p-ink-2); }
+.d-del:hover { border-color: var(--p-low); color: var(--p-low); }
+.d-confirm { display: flex; gap: 6px; }
+.d-danger { background: var(--p-low); color: var(--p-bg); }
+.d-danger:hover { background: #fca5a5; }
+
+.d-modal {
+  position: fixed; inset: 0; z-index: var(--p-z-modal);
+  display: grid; place-items: center; padding: 88px var(--p-gutter) 32px;
+  background: rgba(5, 5, 6, 0.78); animation: p-fade 0.2s var(--p-ease);
+}
+.d-modal-card { width: min(820px, 100%); height: min(80dvh, 900px); animation: p-pop 0.3s var(--p-ease); box-shadow: 8px 8px 0 var(--p-accent); }
+
+@media (max-width: 767px) {
+  .d-drop { grid-template-columns: auto minmax(0, 1fr); }
+  .d-drop .p-btn { grid-column: 1 / -1; width: 100%; }
+  .d-row { grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; }
+  .d-icon { display: none; }
+  .d-status { grid-column: 3; grid-row: 1; }
+  .d-actions { grid-column: 1 / -1; justify-content: flex-end; }
+  .d-modal { padding: 72px 8px 8px; }
+}

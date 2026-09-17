@@ -14,6 +14,7 @@ from __future__ import annotations
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from pymongo.errors import ConfigurationError, ConnectionFailure, PyMongoError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.core.logging import get_logger, request_id_var
@@ -85,6 +86,13 @@ class ModelUnavailableError(AppError):
     code = "model_unavailable"
 
 
+class DatabaseUnavailableError(AppError):
+    """MongoDB could not be reached (bad URI, DNS failure, server down)."""
+
+    status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+    code = "database_unavailable"
+
+
 class DocumentProcessingError(AppError):
     status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
     code = "document_processing_failed"
@@ -121,6 +129,24 @@ def register_exception_handlers(app: FastAPI) -> None:
     @app.exception_handler(StarletteHTTPException)
     async def handle_http_exception(request: Request, exc: StarletteHTTPException) -> JSONResponse:
         return _error_response(exc.status_code, "http_error", str(exc.detail))
+
+    @app.exception_handler(PyMongoError)
+    async def handle_database_error(request: Request, exc: PyMongoError) -> JSONResponse:
+        # Connection-level failures are an outage, not a bug: answer 503 with a
+        # clear message instead of a generic 500.
+        if isinstance(exc, (ConfigurationError, ConnectionFailure)):
+            logger.error("Database unavailable on %s %s: %s", request.method, request.url.path, exc)
+            return _error_response(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "database_unavailable",
+                "The database is unreachable right now. Please try again shortly.",
+            )
+        logger.exception("Database error on %s %s", request.method, request.url.path)
+        return _error_response(
+            status.HTTP_500_INTERNAL_SERVER_ERROR,
+            "internal_error",
+            "An unexpected error occurred",
+        )
 
     @app.exception_handler(Exception)
     async def handle_unexpected(request: Request, exc: Exception) -> JSONResponse:

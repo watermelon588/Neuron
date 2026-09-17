@@ -1,14 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import Navbar from '../components/Navbar';
+import PulseLayout from '../components/pulse/PulseLayout';
 import DocumentPreview from '../components/DocumentPreview';
 import * as documentsApi from '../services/documentsApi';
+import { gsap, useGsap } from '../hooks/useGsap';
+import './documents/documents.css';
 
 const FORMAT_ICONS = {
-    pdf: '📕', docx: '📘', txt: '📄', md: '📝', csv: '📊', tsv: '📊',
-    xlsx: '📊', xls: '📊', html: '🌐', htm: '🌐', xml: '🧾', json: '🧾', code: '💻',
+    pdf: 'fa-regular fa-file-pdf', docx: 'fa-regular fa-file-word', txt: 'fa-regular fa-file-lines',
+    md: 'fa-brands fa-markdown', csv: 'fa-solid fa-file-csv', tsv: 'fa-solid fa-file-csv',
+    xlsx: 'fa-regular fa-file-excel', xls: 'fa-regular fa-file-excel', html: 'fa-solid fa-code',
+    htm: 'fa-solid fa-code', xml: 'fa-solid fa-code', json: 'fa-solid fa-code', code: 'fa-regular fa-file-code',
 };
+
+const ACCEPT = '.pdf,.docx,.txt,.md,.markdown,.csv,.tsv,.xlsx,.xls,.html,.htm,.xml,.json,.py,.js,.jsx,.ts,.tsx,.java,.c,.cpp,.cs,.go,.rs,.rb,.php,.sql,.sh,.yaml,.yml,.toml';
 
 function formatBytes(bytes) {
     if (bytes < 1024) return `${bytes} B`;
@@ -16,32 +21,18 @@ function formatBytes(bytes) {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function StatusBadge({ status }) {
-    const palette = {
-        ready: { fg: 'rgba(74,222,128,0.95)', bg: 'rgba(74,222,128,0.10)' },
-        processing: { fg: 'rgba(250,204,21,0.95)', bg: 'rgba(250,204,21,0.10)' },
-        failed: { fg: 'rgba(248,113,113,0.95)', bg: 'rgba(248,113,113,0.10)' },
-    }[status] || { fg: 'rgba(255,255,255,0.5)', bg: 'rgba(255,255,255,0.06)' };
-    return (
-        <span style={{
-            fontSize: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em',
-            color: palette.fg, background: palette.bg, borderRadius: '999px', padding: '2px 8px',
-        }}>
-            {status}
-        </span>
-    );
-}
-
 export default function Documents() {
     const navigate = useNavigate();
     const [documents, setDocuments] = useState([]);
     const [selected, setSelected] = useState(new Set());
     const [loading, setLoading] = useState(true);
-    const [uploading, setUploading] = useState(false);
+    const [uploading, setUploading] = useState(null);   // { current, total, name }
     const [error, setError] = useState(null);
     const [dragging, setDragging] = useState(false);
-    const [viewDoc, setViewDoc] = useState(null);   // { documentId, documentName }
+    const [viewDoc, setViewDoc] = useState(null);       // { documentId, documentName }
+    const [confirmId, setConfirmId] = useState(null);
     const fileInputRef = useRef(null);
+    const rootRef = useRef(null);
 
     const refresh = useCallback(async () => {
         try {
@@ -56,25 +47,38 @@ export default function Documents() {
 
     useEffect(() => { refresh(); }, [refresh]);
 
+    // Close the viewer with Escape.
+    useEffect(() => {
+        if (!viewDoc) return undefined;
+        const onKey = (e) => { if (e.key === 'Escape') setViewDoc(null); };
+        window.addEventListener('keydown', onKey);
+        document.documentElement.style.overflow = 'hidden';
+        return () => {
+            window.removeEventListener('keydown', onKey);
+            document.documentElement.style.overflow = '';
+        };
+    }, [viewDoc]);
+
     async function handleUpload(files) {
         if (!files?.length) return;
-        setUploading(true);
         setError(null);
         try {
-            for (const file of files) {
-                await documentsApi.uploadDocument(file);
+            for (let i = 0; i < files.length; i += 1) {
+                setUploading({ current: i + 1, total: files.length, name: files[i].name });
+                await documentsApi.uploadDocument(files[i]);
             }
             await refresh();
         } catch (err) {
             setError(err.message);
             await refresh(); // earlier files in the batch may have succeeded
         } finally {
-            setUploading(false);
+            setUploading(null);
         }
     }
 
     async function handleDelete(documentId) {
         setError(null);
+        setConfirmId(null);
         try {
             await documentsApi.deleteDocument(documentId);
             setSelected(prev => { const next = new Set(prev); next.delete(documentId); return next; });
@@ -99,202 +103,165 @@ export default function Documents() {
 
     const readyCount = documents.filter(d => d.status === 'ready').length;
 
+    useGsap((c) => {
+        if (!c.motion) return;
+        gsap.from('.p-page-title .p-title-mask > span', { yPercent: 100, fontStretch: '62%', duration: 1.1, ease: 'expo.out' });
+        gsap.from('.d-head .p-lede, .d-drop', { y: 24, opacity: 0, duration: 0.8, ease: 'expo.out', stagger: 0.08, delay: 0.15 });
+    }, rootRef);
+
+    useGsap((c) => {
+        if (!c.motion || loading) return;
+        gsap.from('.d-row', { y: 18, opacity: 0, duration: 0.5, ease: 'expo.out', stagger: 0.04, clearProps: 'transform,opacity' });
+    }, rootRef, [loading, documents.length]);
+
     return (
-        <div style={{ minHeight: '100vh', position: 'relative' }}>
-            <Navbar />
+        <PulseLayout>
+            <div ref={rootRef} className="p-container d-wrap">
+                <header className="d-head p-page-head">
+                    <h1 className="p-page-title"><span className="p-title-mask"><span style={{ display: 'inline-block' }}>Your documents.</span></span></h1>
+                    <p className="p-lede">Upload PDFs, Word files, spreadsheets, Markdown or code, then ask them questions.</p>
+                </header>
 
-            <div style={{ position: 'relative', zIndex: 10, maxWidth: '860px', margin: '0 auto', padding: '110px 24px 96px' }}>
-                <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
-                    <h1 style={{ fontSize: '26px', fontWeight: 700, color: '#fff', marginBottom: '6px' }}>
-                        Your documents
-                    </h1>
-                    <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.45)', marginBottom: '28px' }}>
-                        Upload PDFs, Word files, spreadsheets, markdown, code and more — then chat with them.
-                    </p>
-                </motion.div>
-
-                {/* Upload dropzone */}
-                <motion.div
-                    initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
+                <div
+                    className="d-drop"
+                    data-dragging={dragging}
+                    data-busy={Boolean(uploading)}
                     onDragOver={e => { e.preventDefault(); setDragging(true); }}
-                    onDragLeave={() => setDragging(false)}
-                    onDrop={e => { e.preventDefault(); setDragging(false); handleUpload([...e.dataTransfer.files]); }}
-                    onClick={() => fileInputRef.current?.click()}
-                    style={{
-                        padding: '36px', borderRadius: '16px', textAlign: 'center', cursor: 'pointer',
-                        border: `1.5px dashed ${dragging ? 'rgba(61,139,255,0.65)' : 'rgba(255,255,255,0.15)'}`,
-                        background: dragging ? 'rgba(61,139,255,0.08)' : 'rgba(255,255,255,0.03)',
-                        transition: 'all 0.2s ease', marginBottom: '28px',
-                    }}>
+                    onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget)) setDragging(false); }}
+                    onDrop={e => { e.preventDefault(); setDragging(false); if (!uploading) handleUpload([...e.dataTransfer.files]); }}
+                >
                     <input
-                        ref={fileInputRef} type="file" multiple style={{ display: 'none' }}
-                        accept=".pdf,.docx,.txt,.md,.markdown,.csv,.tsv,.xlsx,.xls,.html,.htm,.xml,.json,.py,.js,.jsx,.ts,.tsx,.java,.c,.cpp,.cs,.go,.rs,.rb,.php,.sql,.sh,.yaml,.yml,.toml"
+                        ref={fileInputRef} id="doc-upload" type="file" multiple hidden accept={ACCEPT}
                         onChange={e => { handleUpload([...e.target.files]); e.target.value = ''; }}
                     />
-                    <div style={{ fontSize: '28px', marginBottom: '10px' }}>{uploading ? '⏳' : '📎'}</div>
-                    <p style={{ fontSize: '14px', fontWeight: 600, color: 'rgba(255,255,255,0.8)', marginBottom: '12px' }}>
-                        {uploading ? 'Uploading & indexing…' : 'Drag & drop a document here'}
-                    </p>
+                    <div className="d-drop-icon" aria-hidden="true">
+                        <i className={uploading ? 'fa-solid fa-circle-notch p-spin' : 'fa-solid fa-arrow-up-from-bracket'} />
+                    </div>
+                    <div className="d-drop-text" aria-live="polite">
+                        <b>
+                            {uploading
+                                ? `Indexing ${uploading.name}`
+                                : dragging ? 'Drop to upload' : 'Drag files here'}
+                        </b>
+                        <span className="p-mono p-dim">
+                            {uploading
+                                ? `File ${uploading.current} of ${uploading.total}. Parsing, chunking and embedding.`
+                                : 'PDF, DOCX, TXT, MD, CSV, Excel, HTML, XML, JSON, source code'}
+                        </span>
+                    </div>
                     <button
                         type="button"
-                        onClick={e => { e.stopPropagation(); fileInputRef.current?.click(); }}
-                        disabled={uploading}
-                        style={{
-                            padding: '10px 22px', borderRadius: 'var(--radius-pill)',
-                            border: '1px solid var(--accent-border)', background: 'var(--accent-soft)',
-                            color: 'var(--accent-text)', fontSize: '13px', fontWeight: 700,
-                            cursor: uploading ? 'wait' : 'pointer', marginBottom: '12px',
-                        }}>
-                        ⬆ Choose a file to upload
+                        className="p-btn p-btn-accent p-btn-lg"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={Boolean(uploading)}
+                    >
+                        Choose files
                     </button>
-                    <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.35)' }}>
-                        PDF · DOCX · TXT · MD · CSV · Excel · HTML · XML · JSON · source code
-                    </p>
-                </motion.div>
+                </div>
 
-                {error && (
-                    <div style={{
-                        padding: '12px 16px', borderRadius: '12px', marginBottom: '20px',
-                        border: '1px solid rgba(239,68,68,0.25)', background: 'rgba(239,68,68,0.08)',
-                        color: 'rgba(252,165,165,0.9)', fontSize: '13px',
-                    }}>
-                        {error}
-                    </div>
-                )}
+                {error && <p className="p-alert d-error" role="alert"><i className="fa-solid fa-triangle-exclamation" aria-hidden="true" /> {error}</p>}
 
-                {/* Chat CTA */}
                 {readyCount > 0 && (
-                    <div style={{
-                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                        marginBottom: '16px', flexWrap: 'wrap', gap: '10px',
-                    }}>
-                        <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.4)' }}>
+                    <div className="d-bar">
+                        <p>
                             {selected.size > 0
-                                ? `${selected.size} document(s) selected for chat`
-                                : 'Select documents to scope a chat, or chat across everything'}
+                                ? <><b className="p-mono p-accent-text">{selected.size}</b> selected for chat</>
+                                : 'Select documents to scope a chat, or chat across all of them.'}
                         </p>
-                        <motion.button
-                            whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-                            onClick={startChat}
-                            style={{
-                                padding: '9px 20px', borderRadius: '999px', border: 'none',
-                                background: '#fff', color: '#000', fontSize: '13px', fontWeight: 600,
-                                cursor: 'pointer',
-                            }}>
-                            💬 Chat with {selected.size > 0 ? 'selection' : 'all documents'}
-                        </motion.button>
+                        <div className="d-bar-actions">
+                            {selected.size > 0 && (
+                                <button type="button" className="p-btn p-btn-ghost" onClick={() => setSelected(new Set())}>Clear</button>
+                            )}
+                            <button type="button" className="p-btn p-btn-accent" onClick={startChat}>
+                                <i className="fa-regular fa-comments" aria-hidden="true" />
+                                Chat with {selected.size > 0 ? 'selection' : 'all'}
+                            </button>
+                        </div>
                     </div>
                 )}
 
-                {/* Document list */}
                 {loading ? (
-                    <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '14px', textAlign: 'center', padding: '40px 0' }}>
-                        Loading…
-                    </p>
+                    <div className="d-list" aria-busy="true" aria-label="Loading documents">
+                        {[1, 2, 3].map(i => <div key={i} className="d-row d-row--skel"><span className="p-skel" /><span className="p-skel" /></div>)}
+                    </div>
                 ) : documents.length === 0 ? (
-                    <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '14px', textAlign: 'center', padding: '40px 0' }}>
-                        No documents yet — upload one to get started.
-                    </p>
+                    <div className="p-empty">
+                        <h3>No documents yet.</h3>
+                        <p>Upload a file above. Once it shows Ready, you can view its chunks or start a chat with it.</p>
+                    </div>
                 ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                        <AnimatePresence>
-                            {documents.map(document => (
-                                <motion.div
-                                    key={document.id} layout
-                                    initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, x: -20 }}
-                                    style={{
-                                        display: 'flex', alignItems: 'center', gap: '14px',
-                                        padding: '14px 18px', borderRadius: '12px',
-                                        border: selected.has(document.id)
-                                            ? '1px solid rgba(61,139,255,0.5)'
-                                            : '1px solid rgba(255,255,255,0.09)',
-                                        background: selected.has(document.id)
-                                            ? 'rgba(61,139,255,0.08)'
-                                            : 'rgba(255,255,255,0.03)',
-                                        cursor: document.status === 'ready' ? 'pointer' : 'default',
-                                        transition: 'border-color 0.15s ease, background 0.15s ease',
-                                    }}
-                                    onClick={() => document.status === 'ready' && toggleSelect(document.id)}
-                                >
-                                    <span style={{ fontSize: '22px' }}>{FORMAT_ICONS[document.format] || '📄'}</span>
-                                    <div style={{ flex: 1, minWidth: 0 }}>
-                                        <p style={{
-                                            fontSize: '14px', fontWeight: 600, color: 'rgba(255,255,255,0.9)',
-                                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                                        }}>
-                                            {document.filename}
-                                        </p>
-                                        <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.35)', marginTop: '2px' }}>
-                                            {formatBytes(document.size_bytes)}
-                                            {document.page_count ? ` · ${document.page_count} pages` : ''}
-                                            {document.chunk_count ? ` · ${document.chunk_count} chunks indexed` : ''}
-                                        </p>
-                                        {document.error && (
-                                            <p style={{ fontSize: '11px', color: 'rgba(248,113,113,0.8)', marginTop: '3px' }}>
-                                                {document.error}
-                                            </p>
+                    <ul className="d-list">
+                        {documents.map(doc => {
+                            const isSelected = selected.has(doc.id);
+                            const ready = doc.status === 'ready';
+                            return (
+                                <li key={doc.id} className="d-row" data-selected={isSelected}>
+                                    <label className="d-check" data-disabled={!ready}>
+                                        <input
+                                            type="checkbox"
+                                            checked={isSelected}
+                                            disabled={!ready}
+                                            onChange={() => toggleSelect(doc.id)}
+                                            aria-label={`Select ${doc.filename} for chat`}
+                                        />
+                                        <span aria-hidden="true"><i className="fa-solid fa-check" /></span>
+                                    </label>
+                                    <i className={`${FORMAT_ICONS[doc.format] || 'fa-regular fa-file'} d-icon`} aria-hidden="true" />
+                                    <div className="d-info">
+                                        <b title={doc.filename}>{doc.filename}</b>
+                                        <span className="p-mono p-dim">
+                                            {formatBytes(doc.size_bytes)}
+                                            {doc.page_count ? `, ${doc.page_count} pages` : ''}
+                                            {doc.chunk_count ? `, ${doc.chunk_count} chunks` : ''}
+                                        </span>
+                                        {doc.error && <span className="d-doc-error">{doc.error}</span>}
+                                    </div>
+                                    <span className="d-status p-mono" data-status={doc.status}>{doc.status}</span>
+                                    <div className="d-actions">
+                                        {ready && (
+                                            <button
+                                                type="button"
+                                                className="p-btn p-btn-ghost"
+                                                onClick={() => setViewDoc({ documentId: doc.id, documentName: doc.filename })}
+                                            >
+                                                View
+                                            </button>
+                                        )}
+                                        {confirmId === doc.id ? (
+                                            <span className="d-confirm">
+                                                <button type="button" className="p-btn d-danger" onClick={() => handleDelete(doc.id)}>Delete</button>
+                                                <button type="button" className="p-btn p-btn-ghost" onClick={() => setConfirmId(null)}>Keep</button>
+                                            </span>
+                                        ) : (
+                                            <button
+                                                type="button"
+                                                className="d-del"
+                                                onClick={() => setConfirmId(doc.id)}
+                                                aria-label={`Delete ${doc.filename}`}
+                                                title="Delete document"
+                                            >
+                                                <i className="fa-regular fa-trash-can" aria-hidden="true" />
+                                            </button>
                                         )}
                                     </div>
-                                    <StatusBadge status={document.status} />
-                                    {document.status === 'ready' && (
-                                        <button
-                                            onClick={e => { e.stopPropagation(); setViewDoc({ documentId: document.id, documentName: document.filename }); }}
-                                            title="View document content"
-                                            style={{
-                                                padding: '6px 14px', borderRadius: 'var(--radius-pill)',
-                                                background: 'var(--surface-2)', border: '1px solid var(--border)',
-                                                color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '12px', fontWeight: 600,
-                                            }}
-                                            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent-border)'; e.currentTarget.style.color = 'var(--accent-text)'; }}
-                                            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
-                                        >
-                                            View
-                                        </button>
-                                    )}
-                                    <button
-                                        onClick={e => { e.stopPropagation(); handleDelete(document.id); }}
-                                        title="Delete document"
-                                        style={{
-                                            width: '30px', height: '30px', borderRadius: '8px',
-                                            background: 'transparent', border: '1px solid rgba(255,255,255,0.10)',
-                                            color: 'rgba(255,255,255,0.4)', cursor: 'pointer', fontSize: '13px',
-                                        }}
-                                        onMouseEnter={e => { e.currentTarget.style.color = 'rgba(248,113,113,0.9)'; e.currentTarget.style.borderColor = 'rgba(248,113,113,0.4)'; }}
-                                        onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.4)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)'; }}
-                                    >
-                                        ✕
-                                    </button>
-                                </motion.div>
-                            ))}
-                        </AnimatePresence>
-                    </div>
+                                </li>
+                            );
+                        })}
+                    </ul>
                 )}
             </div>
 
-            {/* Document viewer modal */}
-            <AnimatePresence>
-                {viewDoc && (
-                    <motion.div
-                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        onClick={() => setViewDoc(null)}
-                        style={{
-                            position: 'fixed', inset: 0, zIndex: 1000, display: 'flex',
-                            alignItems: 'center', justifyContent: 'center', padding: '80px 24px 40px',
-                            background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(var(--blur-sm))',
-                        }}>
-                        <motion.div
-                            initial={{ scale: 0.96, y: 10 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.96, y: 10 }}
-                            onClick={e => e.stopPropagation()}
-                            style={{ width: '100%', maxWidth: '760px', height: '100%', maxHeight: '80vh' }}>
-                            <DocumentPreview
-                                documentId={viewDoc.documentId}
-                                documentName={viewDoc.documentName}
-                                onClose={() => setViewDoc(null)}
-                            />
-                        </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-        </div>
+            {viewDoc && (
+                <div className="d-modal" role="dialog" aria-modal="true" aria-label={`Preview of ${viewDoc.documentName}`} onClick={() => setViewDoc(null)}>
+                    <div className="d-modal-card" onClick={e => e.stopPropagation()}>
+                        <DocumentPreview
+                            documentId={viewDoc.documentId}
+                            documentName={viewDoc.documentName}
+                            onClose={() => setViewDoc(null)}
+                        />
+                    </div>
+                </div>
+            )}
+        </PulseLayout>
     );
 }

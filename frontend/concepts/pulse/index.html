@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Neuron Pulse</title>
+  <meta name="description" content="Concept A. Kinetic Swiss: Archivo variable width, signal orange on graphite, hard edges." />
+  <link rel="icon" type="image/png" href="/favicon-32.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1"></script>
+  <link rel="stylesheet" href="../shared/switch.css" />
+  <link rel="stylesheet" href="./pulse.css" />
+</head>
+<body>
+  <div class="grain" aria-hidden="true"></div>
+
+  <header class="nav">
+    <a class="brand" href="#top" aria-label="Neuron home">
+      <img class="mark" src="/src/assets/Neuron/logo/logo3-160.png" alt="" width="28" height="28" />
+      <span>Neuron</span>
+    </a>
+    <nav class="nav-links" aria-label="Primary">
+      <a href="#room">Room</a>
+      <a href="#features">Calls</a>
+      <a href="#features">Recall</a>
+      <a href="#features">Docs</a>
+    </nav>
+    <a class="btn btn-accent nav-cta" href="#room">Start a call <i class="ph-bold ph-arrow-up-right" aria-hidden="true"></i></a>
+  </header>
+
+  <main id="top">
+    <!-- HERO: asymmetric split, kinetic variable-width headline -->
+    <section class="hero">
+      <div class="hero-copy">
+        <h1 class="hero-title">
+          <span class="line">Every call</span>
+          <span class="line"><span class="accent">remembers.</span></span>
+        </h1>
+        <p class="hero-sub">Video calls and chat in one place. Neuron transcribes while you talk, so any moment is one search away.</p>
+        <div class="hero-cta">
+          <a class="btn btn-accent btn-lg" href="#room">Start a call <i class="ph-bold ph-arrow-up-right" aria-hidden="true"></i></a>
+          <a class="btn btn-ghost btn-lg" href="#features">How it works</a>
+        </div>
+      </div>
+
+      <div class="hero-stage" data-room-lite>
+        <figure class="htile htile-main">
+          <img src="/src/assets/Neuron/gallery/fa358c755b204cc2f8282e6c6b70baf8.jpg" alt="Ines on a video call, lit in blue" />
+          <div class="htile-bar">
+            <span>Ines Duarte</span>
+            <span class="wave" data-live="true" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
+          </div>
+        </figure>
+        <figure class="htile htile-pip">
+          <video src="/src/assets/Neuron/gallery/15197034_1280_720_24fps%20(1).mp4" autoplay muted loop playsinline aria-label="Your camera preview"></video>
+          <div class="htile-bar"><span>You</span><i class="ph ph-microphone" aria-hidden="true"></i></div>
+        </figure>
+        <div class="hcap" aria-live="off">
+          <div class="hcap-top"><span class="rec" aria-hidden="true"></span><span class="mono" data-hero-timer>04:12</span><span class="mono dim">Live captions</span></div>
+          <p data-hero-caption>Launch moves to Thursday so QA gets two full days.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- MARQUEE: the only one on the page -->
+    <div class="band" aria-hidden="true">
+      <div class="band-track">
+        <div class="band-set">
+          <span>Video calls</span><img src="/src/assets/Neuron/logo/logo3-160.png" alt="" />
+          <span>Live captions</span><img src="/src/assets/Neuron/logo/logo3-160.png" alt="" />
+          <span>Chat</span><img src="/src/assets/Neuron/logo/logo3-160.png" alt="" />
+          <span>Voice notes</span><img src="/src/assets/Neuron/logo/logo3-160.png" alt="" />
+          <span>Files</span><img src="/src/assets/Neuron/logo/logo3-160.png" alt="" />
+          <span>Recall</span><img src="/src/assets/Neuron/logo/logo3-160.png" alt="" />
+        </div>
+      </div>
+    </div>
+
+    <!-- ROOM: working product preview -->
+    <section class="room" id="room">
+      <div class="room-head">
+        <h2 class="reveal">Step into the room.</h2>
+        <p class="reveal">This preview runs in your browser. Mute yourself, leave the call, or type <code>/ask when is launch?</code> in the chat.</p>
+      </div>
+
+      <div class="app reveal-app" data-room>
+        <aside class="app-rail" aria-label="Conversations">
+          <p class="rail-label">Rooms</p>
+          <button class="thread is-active" type="button">
+            <span class="thread-av stack"><img src="/src/assets/Neuron/gallery/fa358c755b204cc2f8282e6c6b70baf8.jpg" alt="" /><img src="/src/assets/Neuron/gallery/70762889dccedc034f76ebed1449f449.jpg" alt="" /></span>
+            <span class="thread-main"><b>Launch crew</b><span>Ines: Can everyone see my screen?</span></span>
+            <span class="thread-live">Live</span>
+          </button>
+          <button class="thread" type="button">
+            <span class="thread-av"><img src="/src/assets/Neuron/gallery/42142ffcc3d6b3ac4e5f13d1cb249b72.jpg" alt="" /></span>
+            <span class="thread-main"><b>Mira Okafor</b><span>Voice note, 0:42</span></span>
+            <span class="thread-time">5:48</span>
+          </button>
+          <button class="thread" type="button">
+            <span class="thread-av"><img src="/src/assets/Neuron/gallery/547c613297f266ca47279a062ee97dd6.jpg" alt="" /></span>
+            <span class="thread-main"><b>Otto</b><span>Sent a chart</span></span>
+            <span class="thread-time">4:15</span>
+          </button>
+          <button class="thread" type="button">
+            <span class="thread-av"><img src="/src/assets/Neuron/gallery/a25740cd5a27e5149846ad9c91aff116.jpg" alt="" /></span>
+            <span class="thread-main"><b>Aarav Sen</b><span>brief-v3.pdf</span></span>
+            <span class="thread-time">Tue</span>
+          </button>
+        </aside>
+
+        <div class="app-stage">
+          <div class="stage-top">
+            <b>Launch crew</b>
+            <span class="stage-meta"><span class="rec" aria-hidden="true"></span><span class="mono" data-timer>18:32</span><span class="mono dim">5 people</span></span>
+          </div>
+
+          <div class="stage-grid">
+            <figure class="ptile" data-tile="ines">
+              <img src="/src/assets/Neuron/gallery/fa358c755b204cc2f8282e6c6b70baf8.jpg" alt="Ines Duarte" />
+              <figcaption class="ptag"><span class="wave" aria-hidden="true"><i></i><i></i><i></i><i></i></span>Ines</figcaption>
+            </figure>
+            <figure class="ptile" data-tile="kofi">
+              <img src="/src/assets/Neuron/gallery/70762889dccedc034f76ebed1449f449.jpg" alt="Kofi Mensah" />
+              <figcaption class="ptag"><span class="wave" aria-hidden="true"><i></i><i></i><i></i><i></i></span>Kofi</figcaption>
+            </figure>
+            <figure class="ptile" data-tile="aarav">
+              <img src="/src/assets/Neuron/gallery/a25740cd5a27e5149846ad9c91aff116.jpg" alt="Aarav Sen" />
+              <figcaption class="ptag"><span class="wave" aria-hidden="true"><i></i><i></i><i></i><i></i></span>Aarav</figcaption>
+            </figure>
+            <figure class="ptile" data-tile="otto">
+              <img src="/src/assets/Neuron/gallery/547c613297f266ca47279a062ee97dd6.jpg" alt="Otto, a chimpanzee in a houndstooth blazer, on the phone" />
+              <figcaption class="ptag"><span class="wave" aria-hidden="true"><i></i><i></i><i></i><i></i></span>Otto</figcaption>
+            </figure>
+            <figure class="ptile ptile-you" data-tile="you">
+              <video src="/src/assets/Neuron/gallery/15197034_1280_720_24fps%20(1).mp4" autoplay muted loop playsinline aria-label="Your camera"></video>
+              <span class="cam-off-label" aria-hidden="true">YOU</span>
+              <figcaption class="ptag"><i class="ph-bold ph-microphone-slash muted-icon" aria-hidden="true"></i>You</figcaption>
+            </figure>
+          </div>
+
+          <div class="stage-caption" aria-live="polite">
+            <span class="cap-name" data-caption-name>Ines</span>
+            <span class="cap-text" data-caption-text>Joining the call.</span>
+          </div>
+
+          <div class="controls">
+            <button class="ctl" type="button" data-ctl="mic" aria-pressed="false" aria-label="Mute microphone"><i class="ph ph-microphone on" aria-hidden="true"></i><i class="ph ph-microphone-slash off" aria-hidden="true"></i></button>
+            <button class="ctl" type="button" data-ctl="cam" aria-pressed="false" aria-label="Turn camera off"><i class="ph ph-video-camera on" aria-hidden="true"></i><i class="ph ph-video-camera-slash off" aria-hidden="true"></i></button>
+            <button class="ctl" type="button" data-ctl="react" aria-label="Send a reaction"><i class="ph ph-hand-waving" aria-hidden="true"></i></button>
+            <button class="ctl ctl-end" type="button" data-ctl="leave"><i class="ph-bold ph-phone-disconnect" aria-hidden="true"></i>Leave</button>
+          </div>
+
+          <div class="ended" data-ended hidden>
+            <img src="/src/assets/Neuron/gallery/547c613297f266ca47279a062ee97dd6.jpg" alt="" />
+            <h3>You left the call.</h3>
+            <p>The transcript is saved to Launch crew. Ask Neuron about it any time.</p>
+            <div class="ended-cta">
+              <button class="btn btn-accent" type="button" data-rejoin>Rejoin</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="app-chat">
+          <div class="chat-head"><b>Thread</b><span class="mono dim">/ask searches the call</span></div>
+          <ol class="chat-log" data-chat-log aria-live="polite"></ol>
+          <div class="suggest" data-suggest>
+            <button type="button" data-q="/ask when is launch?">when is launch?</button>
+            <button type="button" data-q="/ask what about pricing?">pricing?</button>
+            <button type="button" data-q="/ask recap the call">recap</button>
+          </div>
+          <form class="chat-form" data-chat-form>
+            <label class="sr-only" for="pulse-msg">Message Launch crew</label>
+            <input id="pulse-msg" data-chat-input autocomplete="off" placeholder="Message, or /ask a question" />
+            <button class="send" type="submit" aria-label="Send message"><i class="ph-bold ph-arrow-up" aria-hidden="true"></i></button>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- FEATURES: pinned horizontal pan -->
+    <section class="features" id="features">
+      <div class="pan-track">
+        <div class="pan-intro">
+          <h2>One thread for everything you said.</h2>
+          <p>Calls, messages and files land in the same place. Neuron reads all of it, so you don't have to take notes.</p>
+        </div>
+
+        <article class="panel">
+          <figure class="panel-fig"><img src="/src/assets/Neuron/gallery/a25740cd5a27e5149846ad9c91aff116.jpg" alt="Portrait with motion blur" loading="lazy" /></figure>
+          <div class="panel-text">
+            <h3 class="panel-word">Calls</h3>
+            <div>
+              <p>Group video with captions that appear as people speak. Late joiners can read the last five minutes before they say hello.</p>
+              <div class="ui-line"><span class="mono accent">KOFI</span> Let's lock Thursday and send the notes.</div>
+            </div>
+          </div>
+        </article>
+
+        <article class="panel panel-flip">
+          <figure class="panel-fig"><img src="/src/assets/Neuron/gallery/42142ffcc3d6b3ac4e5f13d1cb249b72.jpg" alt="Portrait with a liquid reflection over the eyes" loading="lazy" /></figure>
+          <div class="panel-text">
+            <h3 class="panel-word outline">Chat</h3>
+            <div>
+              <p>Drop in a photo, a voice note or a PDF. Neuron looks at images and listens to audio, then files them where you'll find them.</p>
+              <div class="ui-line"><i class="ph ph-file-pdf accent" aria-hidden="true"></i> brief-v3.pdf <span class="mono dim">read, 12 pages</span></div>
+            </div>
+          </div>
+        </article>
+
+        <article class="panel">
+          <figure class="panel-fig"><img src="/src/assets/Neuron/gallery/70762889dccedc034f76ebed1449f449.jpg" alt="Figure turning, lit from inside" loading="lazy" /></figure>
+          <div class="panel-text">
+            <h3 class="panel-word">Recall</h3>
+            <div>
+              <p>Ask what was decided and get the exact sentence, who said it, and a link to that second of the call.</p>
+              <div class="ui-line"><i class="ph ph-magnifying-glass accent" aria-hidden="true"></i> what did we decide on pricing <span class="mono dim">03:10</span></div>
+            </div>
+          </div>
+        </article>
+
+        <article class="panel panel-flip">
+          <figure class="panel-fig"><img src="/src/assets/Neuron/gallery/0b416699a0382b1a3fc7be66f8d95f7a.jpg" alt="An overstuffed paper folder" loading="lazy" /></figure>
+          <div class="panel-text">
+            <h3 class="panel-word outline">Docs</h3>
+            <div>
+              <p>Share a file mid-call and ask about it out loud. Answers cite the page and paragraph they came from.</p>
+              <div class="ui-line"><i class="ph ph-quotes accent" aria-hidden="true"></i> Section 2.1, page 7</div>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- CLOSE: accent block -->
+    <section class="close">
+      <h2 class="close-title">Ring someone.</h2>
+      <div class="close-row">
+        <p>Open a room, send the link, and Neuron takes the notes for everyone.</p>
+        <a class="btn btn-dark btn-lg" href="#room">Start a call <i class="ph-bold ph-arrow-up-right" aria-hidden="true"></i></a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <span class="brand small"><img class="mark" src="/src/assets/Neuron/logo/logo3-160.png" alt="" width="20" height="20" /><span>Neuron</span></span>
+    <nav aria-label="Legal"><a href="/privacy">Privacy</a><a href="/terms">Terms</a></nav>
+    <span class="mono dim">&copy; 2026 Neuron</span>
+  </footer>
+
+  <nav class="concept-switch" aria-label="Design concepts">
+    <span>Concept</span>
+    <a href="/concepts/pulse/" aria-current="page">A Pulse</a>
+    <a href="/concepts/halo/">B Halo</a>
+    <a href="/concepts/riot/">C Riot</a>
+  </nav>
+
+  <script type="module" src="./pulse.js"></script>
+</body>
+</html>
