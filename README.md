@@ -2,11 +2,6 @@
 
 <img alt="Neuron" src="docs/media/banner.jpg" width="100%">
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/media/logo-lockup-dark.png">
-  <img alt="Neuron" src="docs/media/logo-lockup-light.png" width="380">
-</picture>
-
 ### Search beyond words.
 
 One interface for text, images, audio and video — fused into a single query,
