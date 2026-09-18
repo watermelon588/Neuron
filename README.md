@@ -1,5 +1,7 @@
 <div align="center">
 
+<img alt="Neuron" src="docs/media/banner.jpg" width="100%">
+
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/media/logo-lockup-dark.png">
   <img alt="Neuron" src="docs/media/logo-lockup-light.png" width="380">
@@ -11,7 +13,7 @@ One interface for text, images, audio and video — fused into a single query,
 ranked by what things *mean* and what they *look like*, with every result
 explaining why it ranked where it did.
 
-<sub>FastAPI · React 19 · CLIP · Whisper · BLIP · FAISS · MongoDB</sub>
+<sub>FastAPI · React 19 · GSAP · CLIP · Whisper · BLIP · FAISS · MongoDB</sub>
 
 </div>
 
@@ -32,12 +34,27 @@ JSON or source code and converse with them. Answers are grounded in retrieved
 context with numbered citations that navigate back to the exact page, section
 and line range. Weak context can be augmented with live web search.
 
+![Neuron home: kinetic headline, multimodal search bar and a live "why it ranked" panel](docs/media/screens/01-home.jpg)
+
 | | |
 |---|---|
-| ![Multimodal search](frontend/src/assets/gallery/01-multimodal-search.jpg) | ![Visual match](frontend/src/assets/gallery/02-visual-match.jpg) |
-| **Multimodal search** — one bar for every input type | **Visual match** — ranked by pixel similarity, not filename |
-| ![Documents](frontend/src/assets/gallery/03-documents.jpg) | ![Document chat](frontend/src/assets/gallery/04-document-chat.jpg) |
-| **Documents** — upload, index, browse chunk locations | **Document chat** — grounded answers with clickable citations |
+| ![Search results](docs/media/screens/02-search.jpg) | ![Image detail](docs/media/screens/03-image-detail.jpg) |
+| **Search:** web, image, video and news results, each with a relevance score, confidence tier and "Why this result?" breakdown | **Image detail:** full-size view with credits and every ranking signal |
+| ![Documents](docs/media/screens/04-documents.jpg) | ![Document chat](docs/media/screens/05-document-chat.jpg) |
+| **Documents:** drag-and-drop upload, indexing status, pick files to scope a chat | **Document chat:** grounded answers; each numbered citation opens the exact passage |
+| ![Profile](docs/media/screens/06-profile.jpg) | <img alt="Phone side navigation" src="docs/media/screens/07-mobile-nav.jpg" width="260"> |
+| **Profile:** stats, account and password, search history, saved results | **Phone:** side navigation drawer; every page collapses to one column |
+
+<sub>Screenshots use sample data.</sub>
+
+## Design
+
+The interface uses **Pulse**, a dark, kinetic design system: graphite surfaces,
+one signal-orange accent, sharp edges, Archivo (variable width) for type and
+JetBrains Mono for data. Motion is GSAP with ScrollTrigger and SplitText and
+respects `prefers-reduced-motion`. Tokens and shared components live in
+[`frontend/src/styles/pulse.css`](frontend/src/styles/pulse.css) and
+[`frontend/src/components/pulse/`](frontend/src/components/pulse/).
 
 ## Architecture
 
@@ -61,8 +78,6 @@ backend/app/
 ├── ml/             # Lazy model registry + inference facade
 └── db/             # MongoDB client, repositories, domain models
 ```
-
-The visual system is documented separately in [design.md](design.md).
 
 **Design decisions that matter**
 
@@ -252,5 +267,5 @@ scripts/     share.ps1 — one-command Cloudflare tunnel demo (+ SHARE.md)
 deploy/       Host-specific deploy kits (Oracle VM, …)
 docs/        DEVLOG.md (work history) and media/ (brand assets)
 _archive/    Unused files kept out of the build (gitignored, not deleted)
-design.md    Visual system: tokens, motion, component chrome
+design.md    Previous visual system (superseded by Pulse, see Design above)
 ```
